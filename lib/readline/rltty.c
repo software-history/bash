@@ -364,6 +364,12 @@ prepare_terminal_settings (meta_flag, otio, tiop)
 
 static TIOTYPE otio;
 
+#if defined (FLUSHO)
+#  define OUTPUT_BEING_FLUSHED(tp)  (tp->c_lflag & FLUSHO)
+#else
+#  define OUTPUT_BEING_FLUSHED(tp)  0
+#endif
+
 static int
 get_tty_settings (tty, tiop)
      int tty;
@@ -376,8 +382,12 @@ get_tty_settings (tty, tiop)
       (void) ioctl (tty, TIOCSWINSZ, &w);
 #endif
 
-  while (GETATTR (tty, tiop) < 0)
+  /* Keep looping if output is being flushed after a ^O (or whatever
+     the flush character is). */
+  while (GETATTR (tty, tiop) < 0 || OUTPUT_BEING_FLUSHED (tiop))
     {
+      if (OUTPUT_BEING_FLUSHED (tiop))
+        continue;
       if (errno != EINTR)
 	return -1;
       errno = 0;
@@ -455,6 +465,14 @@ prepare_terminal_settings (meta_flag, otio, tiop)
   tiop->c_cc[VMIN] = 1;
   tiop->c_cc[VTIME] = 0;
 
+#if defined (FLUSHO)
+  if (OUTPUT_BEING_FLUSHED (tiop))
+    {
+      tiop->c_lflag &= ~FLUSHO;
+      otio.c_lflag &= ~FLUSHO;
+    }
+#endif
+
   /* Turn off characters that we need on Posix systems with job control,
      just to be sure.  This includes ^Y and ^V.  This should not really
      be necessary.  */
@@ -505,6 +523,7 @@ rl_prep_terminal (meta_flag)
 
   control_meta_key (1);
   control_keypad (1);
+  fflush (rl_outstream);
   terminal_prepped = 1;
 
   release_sigint ();
@@ -524,14 +543,16 @@ rl_deprep_terminal ()
   /* Try to keep this function from being INTerrupted. */
   block_sigint ();
 
+  control_meta_key (0);
+  control_keypad (0);
+  fflush (rl_outstream);
+
   if (set_tty_settings (tty, &otio) < 0)
     {
       release_sigint ();
       return;
     }
 
-  control_meta_key (0);
-  control_keypad (0);
   terminal_prepped = 0;
 
   release_sigint ();

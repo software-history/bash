@@ -226,6 +226,13 @@ int rl_ignore_completion_duplicates = 1;
    within a completion entry finder function. */
 int rl_filename_completion_desired = 0;
 
+/* Non-zero means that the results of the matches are to be quoted using
+   double quotes (or an application-specific quoting mechanism) if the
+   filename contains any characters in rl_word_break_chars.  This is
+   ALWAYS non-zero on entry, and can only be changed within a completion
+   entry finder function. */
+int rl_filename_quoting_desired = 1;
+
 /* This function, if defined, is called by the completer when real
    filename completion is done, after all the matching names have been
    generated. It is passed a (char**) known as matches in the code below.
@@ -403,8 +410,9 @@ rl_complete_internal (what_to_do)
   else
     our_func = (Function *)filename_completion_function;
 
-  /* Only the completion entry function can change this. */
+  /* Only the completion entry function can change these. */
   rl_filename_completion_desired = 0;
+  rl_filename_quoting_desired = 1;
 
   /* We now look backwards for the start of a filename/variable word. */
   end = rl_point;
@@ -476,15 +484,20 @@ rl_complete_internal (what_to_do)
 		continue;
 #endif /* SHELL */
 
-	      /* Convoluted code, but it avoids an n2 algorithm with calls
+	      /* Convoluted code, but it avoids an n^2 algorithm with calls
 	      	 to char_is_quoted. */
 	      break;
 	    }
 	}
 
-      /* If we are at a word break, then advance past it. */
+      /* If we are at an unquoted word break, then advance past it. */
       scan = rl_line_buffer[rl_point];
+#if defined (SHELL)
+      if ((found_quote == 0 || char_is_quoted (rl_line_buffer, rl_point) == 0) &&
+          strchr (rl_completer_word_break_characters, scan))
+#else
       if (strchr (rl_completer_word_break_characters, scan))
+#endif
 	{
 	  /* If the character that caused the word break was a quoting
 	     character, then remember it as the delimiter. */
@@ -625,12 +638,14 @@ rl_complete_internal (what_to_do)
 	  replacement = matches[0];
 
 	  should_quote = matches[0] && rl_completer_quote_characters &&
-			 rl_filename_completion_desired;
+			 rl_filename_completion_desired &&
+			 rl_filename_quoting_desired;
 
+	  if (should_quote)
 #if defined (SHELL)
-	  should_quote = should_quote && (!quote_char || quote_char == '"');
+	    should_quote = should_quote && (!quote_char || quote_char == '"');
 #else
-	  should_quote = should_quote && !quote_char;
+	    should_quote = should_quote && !quote_char;
 #endif
 
 	  if (should_quote)
@@ -967,7 +982,13 @@ static int
 compare_strings (s1, s2)
   char **s1, **s2;
 {
-  return (strcmp (*s1, *s2));
+  int result;
+
+  result = **s1 - **s2;
+  if (result == 0)
+    result = strcmp (*s1, *s2);
+
+  return result;
 }
 
 /* A completion function for usernames.

@@ -45,6 +45,9 @@ extern int errno;
 
 void free_buffered_stream ();
 
+extern int interactive_shell;
+
+int bash_input_fd_changed;
 /* This provides a way to map from a file descriptor to the buffer
    associated with that file descriptor, rather than just the other
    way around.  This is needed so that buffers are managed properly
@@ -127,8 +130,8 @@ check_bash_input (fd)
 {
   int nfd;
 
-  if (fd > 0 && bash_input.type == st_bstream &&
-      bash_input.location.buffered_fd == fd)
+  if (fd > 0 && ((bash_input.type == st_bstream && bash_input.location.buffered_fd == fd) ||
+  		 (interactive_shell == 0 && default_buffered_input == fd)))
     {
       /* Sync the stream so we can re-read from the new file descriptor.  We
 	 might be able to avoid this by copying the buffered stream verbatim
@@ -157,9 +160,21 @@ check_bash_input (fd)
 	}
 
       /* Reinitialize bash_input.location. */
-      bash_input.location.buffered_fd = nfd;
-      fd_to_buffered_stream (nfd);
-      close_buffered_fd (fd);	/* XXX */
+      if (bash_input.type == st_bstream)
+	{
+	  bash_input.location.buffered_fd = nfd;
+	  fd_to_buffered_stream (nfd);
+	  close_buffered_fd (fd);	/* XXX */
+	}
+      else
+	/* If the current input type is not a buffered stream, but the shell
+	   is not interactive and therefore using a buffered stream to read
+	   input (e.g. with an `eval exec 3>output' inside a script), note
+	   that the input fd has been changed.  pop_stream() looks at this
+	   value and adjusts the input fd to the new value of
+	   default_buffered_input accordingly. */
+	bash_input_fd_changed++;
+
       if (default_buffered_input == fd)
 	default_buffered_input = nfd;
     }

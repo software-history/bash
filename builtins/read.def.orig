@@ -120,10 +120,9 @@ read_builtin (list)
 	 newline pair still disappears from the input. */
       if (pass_next)
 	{
-	  if (c == '\n')
-	    i--;		/* back up over the CTLESC */
-	  else
+	  if (c != '\n')
 	    input_string[i++] = c;
+
 	  pass_next = 0;
 	  continue;
 	}
@@ -165,23 +164,16 @@ read_builtin (list)
   if (!list)
     {
       SHELL_VAR *var;
-      char *t;
 
       if (saw_escape)
-	{
-	  t = dequote_string (input_string);
-	  var = bind_variable ("REPLY", t);
-	  free (t);
-	}
-      else
-	var = bind_variable ("REPLY", input_string);
+	dequote_string (input_string);
+      var = bind_variable ("REPLY", input_string);
       var->attributes &= ~att_invisible;
       free (input_string);
     }
   else
     {
       SHELL_VAR *var;
-      char *t;
       /* This code implements the Posix.2 spec for splitting the words
 	 read and assigning them to variables.  If $IFS is unset, we
 	 use the default value of " \t\n". */
@@ -191,7 +183,7 @@ read_builtin (list)
       orig_input_string = input_string;
       while (list->next)
 	{
-	  char *e, *t1;
+	  char *t, *e;
 
 	  varname = list->word->word;
 
@@ -203,16 +195,7 @@ read_builtin (list)
 	      t = get_word_from_string (&input_string, ifs_chars, &e);
 	      if (t)
 		*e = '\0';
-	      /* Don't bother to remove the CTLESC unless we added one
-		 somewhere while reading the string. */
-	      if (t && saw_escape)
-		{
-		  t1 = dequote_string (t);
-		  var = bind_variable (varname, t1);
-		  free (t1);
-		}
-	      else
-		var = bind_variable (varname, t);
+	      var = bind_variable (varname, t);
 	    }
 	  else
 	    {
@@ -229,14 +212,7 @@ read_builtin (list)
 	  list = list->next;
 	}
 
-      if (saw_escape)
-	{
-	  t = dequote_string (input_string);
-	  var = bind_variable (list->word->word, t);
-	  free (t);
-	}
-      else
-	var = bind_variable (list->word->word, input_string);
+      var = bind_variable (list->word->word, input_string);
       stupidly_hack_special_variables (list->word->word);
       var->attributes &= ~att_invisible;
       free (orig_input_string);

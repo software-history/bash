@@ -249,7 +249,7 @@ rl_search_history (direction, invoking_key)
 	  return 0;
 
 	default:
-	  if (CTRL_P (c) || META_CHAR (c) || c == RUBOUT)
+	  if (CTRL_CHAR (c) || META_CHAR (c) || c == RUBOUT)
 	    {
 	      rl_execute_next (c);
 	      done = 1;

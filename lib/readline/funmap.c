@@ -40,6 +40,8 @@ extern char *xmalloc (), *xrealloc ();
 #include "rlconf.h"
 #include "readline.h"
 
+static int qsort_string_compare ();
+
 FUNMAP **funmap = (FUNMAP **)NULL;
 static int funmap_size = 0;
 static int funmap_entry = 0;
@@ -101,12 +103,14 @@ static FUNMAP default_funmap[] = {
   { "tilde-expand", rl_tilde_expand },
   { "transpose-chars", rl_transpose_chars },
   { "transpose-words", rl_transpose_words },
+  { "tty-status", rl_tty_status },
   { "undo", rl_undo_command },
   { "universal-argument", rl_universal_argument },
   { "unix-line-discard", rl_unix_line_discard },
   { "unix-word-rubout", rl_unix_word_rubout },
   { "upcase-word", rl_upcase_word },
   { "yank", rl_yank },
+  { "yank-last-arg", rl_yank_last_arg },
   { "yank-nth-arg", rl_yank_nth_arg },
   { "yank-pop", rl_yank_pop },
 
@@ -193,19 +197,6 @@ rl_initialize_funmap ()
   funmap_program_specific_entry_start = i;
 }
 
-/* Stupid comparison routine for qsort () ing strings. */
-static int
-qsort_string_compare (s1, s2)
-     register char **s1, **s2;
-{
-  int r;
-
-  r = **s1 - **s2;
-  if (r == 0)
-    r = strcmp (*s1, *s2);
-  return r;
-}
-
 /* Produce a NULL terminated array of known function names.  The array
    is sorted.  The array itself is allocated, but not the strings inside.
    You should free () the array when you done, but not the pointrs. */
@@ -237,6 +228,19 @@ rl_funmap_names ()
 
   qsort (result, result_index, sizeof (char *), qsort_string_compare);
   return (result);
+}
+
+/* Stupid comparison routine for qsort () ing strings. */
+static int
+qsort_string_compare (s1, s2)
+     register char **s1, **s2;
+{
+  int r;
+
+  r = **s1 - **s2;
+  if (r == 0)
+    r = strcmp (*s1, *s2);
+  return r;
 }
 
 /* Things that mean `Control'. */

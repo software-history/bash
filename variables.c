@@ -101,6 +101,7 @@ static int local_variable_stack_size = 0;	/* XXX */
 /* Some forward declarations. */
 static void initialize_dynamic_variables ();
 static void sbrand ();		/* set bash random number generator. */
+static int qsort_var_comp ();
 
 /* Make VAR be auto-exported.  VAR is a pointer to a SHELL_VAR. */
 #define set_auto_export(var) \
@@ -481,6 +482,13 @@ map_over (function, var_hash_table)
   return (list);
 }
 
+void
+sort_variables (array)
+     SHELL_VAR **array;
+{
+  qsort (array, array_len ((char **)array), sizeof (SHELL_VAR *), qsort_var_comp);
+}
+
 static int
 qsort_var_comp (var1, var2)
      SHELL_VAR **var1, **var2;
@@ -491,13 +499,6 @@ qsort_var_comp (var1, var2)
     result = strcmp ((*var1)->name, (*var2)->name);
 
   return (result);
-}
-
-void
-sort_variables (array)
-     SHELL_VAR **array;
-{
-  qsort (array, array_len ((char **)array), sizeof (SHELL_VAR *), qsort_var_comp);
 }
 
 /* Create a NULL terminated array of all the shell variables in TABLE. */
@@ -1630,19 +1631,6 @@ dispose_builtin_env ()
   dispose_temporary_vars (&builtin_env);
 }
 
-/* Stupid comparison routine for qsort () ing strings. */
-int
-qsort_string_compare (s1, s2)
-     register char **s1, **s2;
-{
-  int result;
-
-  if ((result = **s1 - **s2) == 0)
-    result = strcmp (*s1, *s2);
-
-  return (result);
-}
-
 /* Sort ARRAY, a null terminated array of pointers to strings. */
 void
 sort_char_array (array)
@@ -1773,7 +1761,7 @@ extern char **environ;
 
 char *
 getenv (name)
-#if defined (Linux) || defined (__bsdi__)
+#if defined (Linux) || defined (__bsdi__) || defined (convex)
      const char *name;
 #else
      char const *name;

@@ -41,13 +41,16 @@
 
 /* Some character stuff. */
 #define control_character_threshold 0x020   /* Smaller than this is control. */
+#define control_character_mask 0x1f	    /* 0x20 - 1 */
 #define meta_character_threshold 0x07f	    /* Larger than this is Meta. */
 #define control_character_bit 0x40	    /* 0x000000, must be off. */
 #define meta_character_bit 0x080	    /* x0000000, must be on. */
 #define largest_char 255		    /* Largest character value. */
 
+#define CTRL_CHAR(c) ((c) < control_character_threshold)
 #define META_CHAR(c) ((c) > meta_character_threshold && (c) <= largest_char)
-#define CTRL(c) ((c) & (~control_character_bit))
+
+#define CTRL(c) ((c) & control_character_mask)
 #define META(c) ((c) | meta_character_bit)
 
 #define UNMETA(c) ((c) & (~meta_character_bit))
@@ -56,10 +59,12 @@
 /* Old versions
 #define lowercase_p(c) (((c) > ('a' - 1) && (c) < ('z' + 1)))
 #define uppercase_p(c) (((c) > ('A' - 1) && (c) < ('Z' + 1)))
+#define digit_p(c)  ((c) >= '0' && (c) <= '9')
 */
 
 #define lowercase_p(c) (islower(c))
 #define uppercase_p(c) (isupper(c))
+#define digit_p(x)  (isdigit (x))
 
 #define pure_alphabetic(c) (lowercase_p(c) || uppercase_p(c))
 
@@ -72,9 +77,6 @@
 #  define to_upper(c) (islower(c) ? toupper(c) : (c))
 #  define to_lower(c) (isupper(c) ? tolower(c) : (c))
 #endif
-
-#define CTRL_P(c) ((c) < control_character_threshold)
-#define META_P(c) ((c) > meta_character_threshold)
 
 #ifndef digit_value
 #define digit_value(x) ((x) - '0')

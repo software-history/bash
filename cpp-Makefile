@@ -66,6 +66,8 @@ all: .made
 /* Include some boilerplate Gnu makefile definitions. */
 prefix = /usr/local
 
+/**/#prefix = @prefix@
+
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 libdir = $(exec_prefix)/lib
@@ -82,7 +84,11 @@ manext = $(man1ext)
 infodir = $(prefix)/info
 
 srcdir = .
+/**/#srcdir = @srcdir@
+
 VPATH = .:$(srcdir)
+
+/**/#incdir = @incdir@
 
 /* If you have purify, and want to use it, uncomment this definition or
    run the make as `make -f bash-Makefile bash PURIFY=purify'. */
@@ -357,7 +363,7 @@ LIBINC_USAGE = "-I$${topdir} -I$${topdir}/$(LIBPATH) -I$(LIBSRC)"
 	 fi; \
 	 $(MAKE) $(MFLAGS) target \
 	 srcdir=$(BUILTIN_ABSSRC) CPPFLAGS='$(CPPFLAGS)' \
-	 CFLAGS='$(CCFLAGS) '$(LIBINC_USAGE)' -I. -I$(srcdir)/$(DEFDIR)' \
+	 CFLAGS='$(CCFLAGS) '$(LIBINC_USAGE)' -I. -I$(BUILTIN_ABSSRC)' \
 	 LDFLAGS='$(LDFLAGS)' RANLIB='$(RANLIB)' AR='$(AR)' CC='$(CC)' \
 	 RM='$(RM)' RL_LIBSRC='$(RL_ABSSRC)' \
 	 DIRECTDEFINE='-D '$(srcdir)/$(DEFDIR))
@@ -841,7 +847,7 @@ $(ALLOCA):	$(ALLOCA_DEP)
 		@$(RM) $@
 		@($(LIBINC_DECL); cd $(ALLOC_LIBDIR) ; \
 		 if [ ! -f Makefile ]; then cp $(ALLOC_ABSSRC)Makefile Makefile ; fi; \
-                 $(MAKE) $(MFLAGS) \
+                 $(MAKE) $(MFLAGS) CC='$(CC)' \
 		 CFLAGS='$(LIBRARY_CFLAGS) $(MALLOC_FLAGS)' \
                  CPPFLAGS='$(CPPFLAGS)' ALLOCA_SOURCE=$(ALLOCA_SOURCE) \
 		 ALLOCA_OBJECT=$(ALLOCA_OBJECT) \
@@ -1029,7 +1035,7 @@ $(Program):  .build $(OBJECTS) $(LIBDEP) .distribution
 	@echo
 	@echo "	  ***************************************************"
 	@echo "	  *						    *"
-	@echo "	  * Making Bash-`cat $(srcdir)/.distribution`.`cat $(srcdir)/.patchlevel` for a $(Machine) running $(OS)."
+	@echo "	  * Making Bash-`cat $(srcdir)/.distribution`.`cat $(srcdir)/.patchlevel` for a $(Machine) running $(OS)"
 	@echo "	  *						    *"
 	@echo "	  ***************************************************"
 	@echo
@@ -1041,7 +1047,7 @@ bashbug: $(SUPPORT_SRC)bashbug.sh cpp-Makefile newversion.aux
 	     -e "s:@RELEASE@:`cat $(srcdir)/.distribution`:" \
 	     -e "s:@PATCHLEVEL@:`cat $(srcdir)/.patchlevel`:" \
 	     $(SUPPORT_SRC)bashbug.sh > $@
-	@chmod +x bashbug
+	@chmod a+rx bashbug
 
 version.h:	newversion.aux
 	if ./newversion.aux -dir $(srcdir) -build; then mv -f newversion.h version.h; fi
@@ -1441,7 +1447,7 @@ install:	.made
 		fi
 		$(INSTALL_PROGRAM) $(Program) $(bindir)/$(Program)
 		-if [ -f $(bindir)/bashbug ]; \
-		  then mv $(bindir)/bashbug $(bindir)$bashbug.old; \
+		  then mv $(bindir)/bashbug $(bindir)/bashbug.old; \
 		fi
 		$(INSTALL_PROGRAM) bashbug $(bindir)/bashbug
 		$(RM) installed-$(Program)

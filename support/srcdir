@@ -5,7 +5,8 @@
 #
 
 case "$1" in
-'.')	pwd ;;
+'.'|./)	pwd ;;
+./*|..*)	echo `pwd`/"$1" ;;
 *)	echo "$1" ;;
 esac
 

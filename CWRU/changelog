@@ -404,3 +404,383 @@ lib/readline/readline.h
 				    ---
 machines.h
 	- add #undef HAVE_DIRENT_H to the ardent titan description
+
+				    7/2
+				    ---
+lib/readline/chardefs.h
+	- removed META_P define, renamed CTRL_P to CTRL_CHAR
+
+lib/readline/bind.c, lib/readline/isearch.c
+	- changed instances of CTRL_P to CTRL_CHAR
+
+lib/readline/search.c
+	- include <unistd.h> before rldefs.h, if HAVE_UNISTD_H is defined
+
+lib/readline/readline.c
+	- declare PC, UP, and BC as extern rather than `local' to the
+	  readline library
+
+				    7/5
+				    ---
+bashline.c
+	- implement command word completion inside of command substitution
+	  with a new function: `command_subst_completion_function'
+
+subst.c
+	- new function to help with command subst completion: unclosed_pair
+
+lib/readline/complete.c
+	- new variable rl_filename_quoting_desired, which can be set to 0
+	  to inhibit the quoting of filenames after completion
+
+lib/readline/readline.h
+	- declare rl_filename_completion_desired and
+	  rl_filename_quoting_desired
+
+builtins/bind.def
+	- don't save the old value of rl_outstream before initializing
+	  readline -- it saves garbage values and screws up readline
+
+parse.y
+	- don't have private state telling whether or not readline has
+	  been initialized -- use bash_readline_initialized like other
+	  functions in bashline.c
+
+lib/readline/readline.c
+	- make the default 8-bit behavior be based on whether LC_CTYPE is
+	  defined and its value (accept iso-8859-1 or iso_8859_1)
+
+				    7/6
+				    ---
+variables.c
+	- fix up the declaration of getenv() for convex machines
+
+				    7/7
+				    ---
+lib/readline/readline.c
+	- fixed up typos in the declaration of `savestring'
+
+lib/readline/history.c
+	- fixed an off-by-one error in the ADD_CHAR macro which caused one
+	  extra character to be overwritten, causing the gnu malloc to abort
+	  when that one character was at the end of an allocated block
+	- changed the ADD_STRING macro to avoid some unnecessary xreallocs
+
+lib/readline/display.c
+	- fixed a problem with move_cursor_relative -- function now returns
+	  immediately if it has nothing to do
+	- fixed another problem with displaying prompts with invisible chars
+
+lib/readline/chardefs.h
+	- fixed the CTRL macro to be right (agree with the BSD kernel, for
+	  example)
+
+cpp-Makefile
+	- fixed typo in the `install' recipe
+
+				    7/8
+				    ---
+support/srcdir
+	- fixed to handle srcdir when it begins with ./ or ../ to handle
+	  $(srcdir) being a relative path better
+
+cpp-Makefile
+	- changed some include paths to $(BUILTIN_ABSSRC) when building in
+	  `builtins' to handle $(srcdir) being a relative path
+	- change the `chmod' on bashbug to turn on read and execute for all
+	- added a couple of definitions to make it easier for a later
+	  `configure' program
+
+support/mksysdefs
+	- added a -i option to specify an alternate set of directories to
+	  search for include files
+
+lib/readline/bind.c
+	- in rl_read_init_file, when skipping whitespace at the start of
+	  the line, decrement `i' so that we don't jump past the start
+	  of the next line
+
+machines.h
+	- SCOv4 has a `robust' opendir that checks that you're actually
+	  opening a directory
+
+				   7/11
+				   ----
+lib/readline/complete.c
+	- make sure a word break character is unquoted before using it to
+	  separate out the current word for completing
+
+machines.h
+	- new machine description: NetBSD on motorola m68k machines like
+	  the hp300
+	- undef HAVE_GETWD in the generic svr4 machine description, like
+	  other svr4 descriptions
+
+lib/readline/rltty.c
+	- make sure to fflush (rl_outstream) after toggling the setting
+	  of the keypad and meta key
+
+portbash/libc.sh
+	- add a test for OPENDIR_NOT_ROBUST
+
+support/getcppsyms.c
+	- output __svr4__ if we find __uxps__ (this makes the Fujitsu port of
+	  SVR4 to the sparc build OK)
+
+				   7/12
+				   ----
+lib/readline/display.c
+	- more display-related fixes when the prompt has invisible chars;
+	  this time for screen updates when moving between screen lines
+
+lib/readline/readline.c, lib/readline/display.c
+	- changes to make readline work with terminals that have auto-wrap
+	  from Per Bothner (new function _rl_update_final, term_xn changes,
+	  some efficiency speedups, new function space_to_eol)
+
+				   7/13
+				   ----
+lib/readline/display.c
+	- after moving up screen lines using term_up in _rl_move_vert, if
+	  the new screen line is 0, _rl_last_c_pos needs to be adjusted
+	  to take invisible characters into account.  This was the source
+	  of many bugs
+
+				   
+				   7/14
+				   ----
+documentation/Makefile
+	- change instances of `groff' to `${GROFF}', GROFF is set to
+	  `groff' by default
+
+general.c, variables.c
+	- moved `qsort_string_compare' from variables.c to general.c
+
+general.h, variables.h
+	- moved declaration of `qsort_string_compare' from variables.h
+	  to general.h
+
+alias.c, lib/readline/funmap.c
+	- moved qsort auxiliary functions after their use and added
+	  forward declarations to avoid warnings from ANSI C compilers
+
+memalloc.h
+	- hpux_9 needs alloca declared as `extern void *' if __STDC__
+	  is defined
+
+support/mksysdefs
+	- removed HAVE_SHARED_LIBS entirely
+	- make a call to /bin/uname -X for SCO machines to avoid running
+	  a different uname from the $PATH
+
+machines.h
+	- new descriptions: Intel i860 running SVR4, Tahoe running 4.3 BSD
+	- changed descriptions: Mips/RiscOS, DG AViiON, unknown machine
+
+jobs.c
+	- changes to how the shell handles foreground jobs dying of SIGINT:
+		an interactive shell using job control will no longer
+		act as if it received a SIGINT if the foreground job
+		dies from a SIGINT
+
+		a non-interactive shell or shell without job control tries
+		to differentiate between SIGINTs it has seen (in
+		wait_sigint_handler) and a foreground job dying of a SIGINT
+		not sent from the keyboard, and runs the normal SIGINT code
+		only in the former case
+
+				   7/15
+				   ----
+support/mksysdefs
+	- check for ${UNAME}${RELEASE} expanding to `SunOS4*' or `SunOS5*'
+	  to set SYSDEF to SunOS4 or SunOS5, respectively.  Apparently
+	  this does not work for Solbourne
+
+				   7/18
+				   ----
+
+lib/readline/rltty.c
+	- if output is being flushed on termios systems, loop until the
+	  FLUSHO bit is no longer set in the termios struct
+
+support/mksysdefs
+	- added a -A flag to force creation of ansi-Makefile
+
+machines.h
+	- new entry for Tandem machines running SVR3
+
+				   7/19
+				   ----
+lib/readline/rldefs.h
+	- include <termcap.h> if HAVE_TERMCAP_H is defined
+	- use <termio.h> stuff if HAVE_TERMIO_H is defined and _POSIX_VERSION
+	  is not defined
+
+lib/readline/rldefs.h, lib/readline/history.c
+	- include "config.h" if HAVE_CONFIG_H is defined
+
+lib/readline/{rldefs.h,signals.c,readline.c}
+	- WINSIZE_IN_IOCTL_H -> GWINSZ_IN_SYS_IOCTL for compatibility with
+	  other GNU programs
+
+lib/readline/doc/Makefile
+	- fixed up to create the readline and history manuals in dvi and
+	  ps format
+
+lib/readline/Makefile
+	- changes inspired by the standalone readline-2.0 distribution
+
+				   7/20
+				   ----
+lib/readline/history.c
+	- new function, history_is_stifled (), returns history_stifled
+	- set history_state flags member in the history state functions
+
+lib/readline/history.h
+	- reorganized the function declarations, added missing declarations
+	- history_stifled is no longer exported by the library
+	- added a `flags' member to the HISTORY_STATE structure
+
+bashline.c
+	- use history_is_stifled () instead of history_stifled
+
+lib/readline/readline.c, lib/readline/vi_mode.c
+	- filled in correct argument declarations for functions called via
+	  keymaps (count, key)
+
+lib/readline/complete.c
+	- efficiency improvement for compare_strings
+
+				   7/21
+				   ----
+examples/dirfuncs
+	- new directory functions from ksh book, contributed by
+	  Ken Konecki (kenk@wfg.com)
+
+machines.h
+	- hpux_8 and hpux_9 should both #undef HAVE_ALLOCA unless gcc is
+	  being used
+
+				   7/22
+				   ----
+bashline.c
+	- fixed up command_word_completion_function so that filenames with
+	  leading tildes are completed correctly
+
+				   7/26
+				   ----
+builtins/read.def
+	- if -r not given, make sure CTLESC is removed from input string
+	  when reading \<newline>
+
+lib/readline/readline.c
+	- new function bind_arrow_keys, which binds vt100/ansi arrow key
+	  escape sequences after reading the termcap definition and the
+	  inputrc file
+	- new function rl_yank_last_arg, which does what insert-last-arg
+	  does in bash
+
+lib/readline/emacs_keymap.c
+	- remove default bindings to rl_arrow_keys for M-[ and M-O
+	- rl_yank_last_arg is now bound to `M-.' and `M-_' in
+	  emacs_meta_keymap
+
+subst.c
+	- when performing process substitution on systems with /dev/fd,
+	  make sure the child clears the slot in dev_fd_list it gets
+	  from its parent so the file descriptor does not get closed
+	  inappropriately if reallocated by, e.g., pipe(2)
+
+bashline.c
+	- removed insert_last_arg and the calls to bind in to `M-.' and `M-_'.
+	  `insert-last-argument' is now bound to rl_yank_last_arg for
+	  backwards compatibility
+
+lib/readline/funmap.c
+	- `yank-last-arg' is now a named command for rl_yank_last_arg
+
+
+documentation/bash.1, documentation/readline.3
+	- add description of yank-last-arg as one of the readline user
+	  commands
+
+lib/readline/doc/rluser.texinfo
+	- added description of yank-last-arg
+
+builtins/getopts.def
+	- fixed a typo in the int-to-string code computing the value to set
+	  OPTIND to: had '\0' instead of '0'
+	- made getopts handle the case where there are more than 9 dollar
+	  variables (where rest_of_args is non-null) correctly
+
+				   7/28
+				   ----
+lib/readline/display.c
+	- fixes to the display code for single-line-display in the presence
+	  of prompts containing invisible characters
+
+lib/readline/readline.c
+	- if we are using horizontal scrolling and we have term_xn, decrement
+	  the screenwidth by 1, since we won't be doing any line wrapping
+
+				   7/31
+				   ----
+jobs.c
+	- new variable `freeze_jobs_list' to set when changes to the jobs
+	  list or status of jobs in the list (other than calling something
+	  like `jobs -n') are undesirable.  This is set when execuing traps
+	  on SIGCHLD
+
+				    8/1
+				    ---
+subst.c
+	- check that `~' is unquoted before performing tilde expansion in
+	  an assignment statement
+
+				    8/3
+				    ---
+bracecomp.c
+	- keep brace completion from dumping core if there is only one
+	  match
+
+lib/readline/chardefs.h
+	- add a define for digit_p, which returns the value of isdigit()
+
+lib/readline/readline.c
+	- added function equivalents for uppercase_p, lowercase_p, to_upper,
+	  to_lower, pure_alphabetic, digit_p, and digit_value
+	- replaced calls to numeric () with calls to digit_p, removed
+	  definition of numeric ()
+
+lib/readline/history.c
+	- digit -> digit_p
+
+lib/readline/vi_mode.c
+	- replaced uses of the `isletter' define to use pure_alphabetic
+	  from chartypes.h
+	- replaced uses of `numeric' with calls to digit_p
+	- added do...while(0) to `exchange' define
+
+				    
+				    8/4
+				    ---
+execute_cmd.c
+	- make sure execute_function saves and restores the current loop
+	  count with unwind_protect_int
+
+documentation/features.texi
+	- change the `Shell Command Line Options' section to `Invoking
+	  Bash' to be closer to the GNU coding standards
+
+				    8/5
+				    ---
+builtins/read.def
+	- fixed up a memory leak and made behavior correct when no
+	  variables given and backslash escaped at least one input char
+	- if we added CTLESC anywhere while reading the input string,
+	  make sure we call dequote_string on each word of the input
+	  before calling bind_variable with that string
+
+subst.c
+	- made an efficiency improvement to dequote_string -- don't
+	  do anything when we see CTLESC, just `continue' the loop

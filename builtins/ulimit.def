@@ -119,11 +119,9 @@ static void print_long ();
 #endif
 
 /* Some systems use RLIMIT_NOFILE, others use RLIMIT_OFILE */
-#if defined (HAVE_RESOURCE)
-#  if defined (RLIMIT_OFILE) && !defined (RLIMIT_NOFILE)
-#    define RLIMIT_NOFILE RLIMIT_OFILE
-#  endif
-#endif
+#if defined (HAVE_RESOURCE) && defined (RLIMIT_OFILE) && !defined (RLIMIT_NOFILE)
+#  define RLIMIT_NOFILE RLIMIT_OFILE
+#endif /* HAVE_RESOURCE && RLIMIT_OFILE && !RLIMIT_NOFILE */
 
 #define LIMIT_HARD 0x01
 #define LIMIT_SOFT 0x02

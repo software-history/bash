@@ -307,10 +307,11 @@ map_over_list (list, function)
      GENERIC_LIST *list;
      Function *function;
 {
-  while (list) {
-    (*function) (list);
-    list = list->next;
-  }
+  while (list)
+    {
+      (*function) (list);
+      list = list->next;
+    }
 }
 
 /* Call FUNCTION on every string in WORDS. */
@@ -319,10 +320,11 @@ map_over_words (words, function)
      WORD_LIST *words;
      Function *function;
 {
-  while (words) {
-    (*function)(words->word->word);
-    words = words->next;
-  }
+  while (words)
+    {
+      (*function)(words->word->word);
+      words = words->next;
+    }
 }
 
 /* Reverse the chain of structures in LIST.  Output the new head
@@ -376,15 +378,19 @@ delete_element (list, comparer, arg)
   register GENERIC_LIST *prev = (GENERIC_LIST *)NULL;
   register GENERIC_LIST *temp = *list;
 
-  while (temp) {
-    if ((*comparer) (temp, arg)) {
-      if (prev) prev->next = temp->next;
-      else *list = temp->next;
-      return (temp);
+  while (temp)
+    {
+      if ((*comparer) (temp, arg))
+	{
+	  if (prev)
+	    prev->next = temp->next;
+	  else
+	    *list = temp->next;
+	  return (temp);
+	}
+      prev = temp;
+      temp = temp->next;
     }
-    prev = temp;
-    temp = temp->next;
-  }
   return ((GENERIC_LIST *)&global_error_list);
 }
 
@@ -446,6 +452,19 @@ copy_array (array)
   return (new_array);
 }
 
+/* Comparison routine for use with qsort() on arrays of strings. */
+int
+qsort_string_compare (s1, s2)
+     register char **s1, **s2;
+{
+  int result;
+
+  if ((result = **s1 - **s2) == 0)
+    result = strcmp (*s1, *s2);
+
+  return (result);
+}
+
 /* Append LIST2 to LIST1.  Return the header of the list. */
 GENERIC_LIST *
 list_append (head, tail)
@@ -472,7 +491,8 @@ strip_leading (string)
 {
   char *start = string;
 
-  while (*string && (whitespace (*string) || *string == '\n')) string++;
+  while (*string && (whitespace (*string) || *string == '\n'))
+    string++;
 
   if (string != start)
     {
@@ -652,12 +672,11 @@ absolute_pathname (string)
 
   if (*string++ == '.')
     {
-      if ((!*string) || *string == '/')
+      if (!*string || *string == '/')
 	return (1);
 
-      if (*string++ == '.')
-	if (!*string || *string == '/')
-	  return (1);
+      if (*string == '.' && (string[1] == '\0' || string[1] == '/'))
+	return (1);
     }
   return (0);
 }
@@ -678,11 +697,12 @@ char *
 base_pathname (string)
      char *string;
 {
-  char *p = (char *)strrchr (string, '/');
+  char *p;
 
   if (!absolute_pathname (string))
     return (string);
 
+  p = (char *)strrchr (string, '/');
   if (p)
     return (++p);
   else
@@ -712,7 +732,7 @@ full_pathname (file)
   {
     char *current_dir = xmalloc (2 + MAXPATHLEN + strlen (file));
     int dlen;
-    if (!getwd (current_dir))
+    if (getwd (current_dir) == 0)
       {
 	report_error (current_dir);
 	free (current_dir);

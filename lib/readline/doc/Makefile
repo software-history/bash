@@ -5,22 +5,44 @@ DOC_SUPPORT = ../../doc-support/
 TEXINDEX    = $(DOC_SUPPORT)/texindex
 
 TEX    = tex
-DVIOBJ = history.dvi
-INFOBJ = history.info
 
-all: $(DVIOBJ) $(INFOBJ)
+RLSRC = rlman.texinfo rluser.texinfo rltech.texinfo
+HISTSRC = hist.texinfo hsuser.texinfo hstech.texinfo
 
-history.dvi: hist.texinfo hsuser.texinfo hstech.texinfo
+DVIOBJ = readline.dvi history.dvi
+INFOOBJ = readline.info history.info
+PSOBJ = readline.ps history.ps
+
+all: info dvi
+
+readline.dvi: $(RLSRC)
+	$(TEX) rlman.texinfo
+	$(TEXINDEX) rlman.??
+	$(TEX) rlman.texinfo
+	mv rlman.dvi readline.dvi
+
+readline.info: $(RLSRC)
+	makeinfo rlman.texinfo
+
+history.dvi: ${HISTSRC}
 	$(TEX) hist.texinfo
 	$(TEXINDEX) hist.??
 	$(TEX) hist.texinfo
 	mv hist.dvi history.dvi
 
-history.info: hist.texinfo hsuser.texinfo hstech.texinfo
+history.info: ${HISTSRC}
 	makeinfo hist.texinfo
 
-./texinfo.tex: $(DOC_SUPPORT)texinfo.tex
-	ln -s $(DOC_SUPPORT)texinfo.tex .
+readline.ps:	readline.dvi
+	dvips -D 300 -o $@ readline.dvi
+
+history.ps:	history.dvi
+	dvips -D 300 -o $@ history.dvi
+
+info:	$(INFOOBJ)
+dvi:	$(DVIOBJ)
+ps:	$(PSOBJ)
+
 
 $(TEXINDEX):
 	(cd $(DOC_SUPPORT); $(MAKE) $(MFLAGS) CFLAGS='$(CFLAGS)' texindex)

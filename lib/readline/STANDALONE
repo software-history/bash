@@ -5,7 +5,6 @@ directory.
 NO_SYS_FILE		<sys/file.h> is not present
 HAVE_UNISTD_H		<unistd.h> exists
 HAVE_STDLIB_H		<stdlib.h> exists
-HAVE_GETPW_DECLS	declarations for the getpw functions are in <pwd.h>
 HAVE_VARARGS_H		<varargs.h> exists and is usable
 HAVE_STRING_H		<string.h> exists
 HAVE_ALLOCA_H		<alloca.h> exists and is needed for alloca()
@@ -19,8 +18,9 @@ HAVE_SYS_STREAM_H	<sys/stream.h> exists
 
 System-specific options:
 
-WINSIZE_IN_IOCTL_H	need to include <sys/ioctl.h> for TIOCGWINSZ
-HAVE_GETPW_DECLS	the getpw* functions are declared in <pwd.h>
+GWINSZ_IN_SYS_IOCTL	need to include <sys/ioctl.h> for TIOCGWINSZ
+HAVE_GETPW_DECLS	the getpw* functions are declared in <pwd.h> and cannot
+			be redeclared without compiler errors
 HAVE_STRCASECMP		the strcasecmp and strncasecmp functions are available
 
 USG			Running a variant of System V

@@ -45,8 +45,8 @@ sighandler
 suspend_continue (sig)
      int sig;
 {
-  signal (SIGCONT, old_cont);
-  signal (SIGTSTP, old_tstp);
+  set_signal_handler (SIGCONT, old_cont);
+  set_signal_handler (SIGTSTP, old_tstp);
 #if !defined (VOID_SIGHANDLER)
   return (0);
 #endif /* !VOID_SIGHANDLER */
@@ -77,8 +77,8 @@ suspend_builtin (list)
     }
 
 do_suspend:
-  old_cont = (SigHandler *)signal (SIGCONT, suspend_continue);
-  old_tstp = (SigHandler *)signal (SIGTSTP, SIG_DFL);
+  old_cont = (SigHandler *)set_signal_handler (SIGCONT, suspend_continue);
+  old_tstp = (SigHandler *)set_signal_handler (SIGTSTP, SIG_DFL);
   killpg (shell_pgrp, SIGTSTP);
   return (EXECUTION_SUCCESS);
 }

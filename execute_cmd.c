@@ -1904,6 +1904,7 @@ execute_function (var, words, flags, fds_to_close, async, subshell)
   else
     unwind_protect_int (variable_context);
 
+  unwind_protect_int (loop_level);
   unwind_protect_int (return_catch_flag);
   unwind_protect_jmp_buf (return_catch);
   add_unwind_protect (dispose_command, (char *)tc);

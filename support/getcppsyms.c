@@ -153,8 +153,11 @@ main ()
   printf (" -D__m88k");
 #endif /* __m88k */
 #if defined (__uxpm__)
-  printf (" -DUSGr4 -Du370");
+  printf (" -DUSGr4 -Du370 -D__uxpm__");
 #endif /* __uxpm__ */
+#if defined (__uxps__)
+  printf (" -D__svr4__ -D__uxps__");
+#endif /* __uxps__ */
 #if defined (alliant)
   printf (" -Dalliant");
 #endif /* alliant */

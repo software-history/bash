@@ -4,35 +4,30 @@
 #								   #
 ####################################################################
 
-# This Makefile is hand made from a template file, found in
-# ../template.  Each library must provide several Makefile
-# targets: `all', `clean', `documentation', `install', and
-# `what-tar'.  The `what-tar' target reports the names of the
-# files that need to be included in a tarfile to build the full
-# code and documentation for this library.
-
-# Please note that the values for INCLUDES, CC, AR, RM, CP,
-# RANLIB, and selfdir are passed in from ../Makefile, and do
-# not need to be defined here.
 srcdir = .
 VPATH = .:$(srcdir)
+
+INSTALL = install -c
+INSTALL_PROGRAM = ${INSTALL}
+INSTALL_DATA = ${INSTALL} -m 644
+
+RANLIB = ranlib
+AR = ar
+RM = rm
+CP = cp
+MV = mv
+
+# See the file STANDALONE for the -D defines that readline understands
+DEFS =
+# For libraries which include headers from other libraries.
+LOCAL_INCLUDES = -I. -I..
+
+CPPFLAGS = $(DEFS) $(LOCAL_INCLUDES)
 
 # Here is a rule for making .o files from .c files that doesn't force
 # the type of the machine (like -sun3) into the flags.
 .c.o:
-	$(CC) -c $(CFLAGS) $(INCLUDES) $(LOCAL_DEFINES) $(CPPFLAGS) $<
-
-#
-# See the file STANDALONE for the -D defines that readline understands
-#
-LOCAL_DEFINES = $(LOCAL_INCLUDES)
-
-# Some systems need to define this (like older NeXT systems) in order
-# to prevent namespace conflicts.
-CFLAGS = # -DSTATIC_MALLOC
-
-# For libraries which include headers from other libraries.
-LOCAL_INCLUDES = -I. -I..
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $<
 
 # The name of the main library target.
 LIBRARY_NAME = libreadline.a
@@ -47,7 +42,7 @@ CSOURCES = $(srcdir)readline.c $(srcdir)funmap.c $(srcdir)keymaps.c \
 
 # The header files for this library.
 HSOURCES = readline.h rldefs.h chardefs.h keymaps.h history.h \
-	   posixstat.h tilde.h
+	   posixstat.h tilde.h rlconf.h
 
 OBJECTS = readline.o vi_mode.o funmap.o keymaps.o parens.o search.o \
 	  rltty.o complete.o bind.o isearch.o display.o signals.o \
@@ -80,8 +75,9 @@ libhistory.a: history.o
 	-[ -n "$(RANLIB)" ] && $(RANLIB) $@
 
 documentation: force
-	-mkdir doc
+	[ ! -d doc ] && mkdir doc
 	(if [ -d doc ]; then cd doc; $(MAKE) $(MFLAGS); fi)
+
 force:
 
 # The rule for 'includes' is written funny so that the if statement
@@ -106,11 +102,19 @@ clean:
 	rm -f $(OBJECTS) *.a
 	(if [ -d doc ]; then cd doc; $(MAKE) $(MFLAGS) $@; fi)
 
+tags:	force
+	etags $(CSOURCES) $(HSOURCES)
+
+TAGS:	force
+	ctags -x $(CSOURCES) $(HSOURCES) > $@
+
 readline: readline.h rldefs.h chardefs.h
 readline: $(OBJECTS)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(READLINE_DEFINES) \
 	  $(LOCAL_INCLUDES) -DTEST -o readline readline.c vi_mode.o funmap.o \
 	  keymaps.o -ltermcap
+
+realclean distclean mostlyclean: clean
 
 # Dependencies
 readline.o: readline.c readline.h rldefs.h rlconf.h chardefs.h

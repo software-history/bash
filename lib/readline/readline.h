@@ -51,7 +51,7 @@ extern int
   rl_upcase_word (), rl_downcase_word (), rl_capitalize_word (),
   rl_restart_output (), rl_re_read_init_file (), rl_dump_functions (),
   rl_delete_horizontal_space (), rl_history_search_forward (),
-  rl_history_search_backward (), rl_tty_status ();
+  rl_history_search_backward (), rl_tty_status (), rl_yank_last_arg ();
 
 /* `Public' utility functions. */
 extern int rl_insert_text (), rl_delete_text (), rl_kill_text ();
@@ -214,6 +214,18 @@ extern Function *rl_event_hook;
    with an asterisk. */
 extern int rl_show_star;
 
+/* Non-zero means that the results of the matches are to be treated
+   as filenames.  This is ALWAYS zero on entry, and can only be changed
+   within a completion entry finder function. */
+extern int rl_filename_completion_desired;
+
+/* Non-zero means that the results of the matches are to be quoted using
+   double quotes (or an application-specific quoting mechanism) if the
+   filename contains any characters in rl_word_break_chars.  This is
+   ALWAYS non-zero on entry, and can only be changed within a completion
+   entry finder function. */
+extern int rl_filename_quoting_desired;
+
 /* Non-zero means to suppress normal filename completion after the
    user-specified completion function has been called. */
 extern int rl_attempted_completion_over;
@@ -269,5 +281,9 @@ extern int rl_forced_update_display ();
 /* Definitions available for use by readline clients. */
 #define RL_PROMPT_START_IGNORE	'\001'
 #define RL_PROMPT_END_IGNORE	'\002'
+
+#if !defined (savestring)
+extern char *savestring ();	/* XXX backwards compatibility */
+#endif
 
 #endif /* _READLINE_H_ */

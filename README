@@ -11,7 +11,7 @@ well as a large man page.
 
 To compile it, try typing `make'.  Bash auto-configures the build
 process, so no intervention should be necessary.  If you want to
-use gcc, type `make CC=gcc CPPNAME="$(CC) -E"'.
+use gcc, type `make CC=gcc CPPNAME='$(CC) -E''.
 
 You may want to read the file INSTALL in this directory for more
 information if the make fails.

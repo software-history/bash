@@ -88,7 +88,8 @@ static WORD_LIST *expand_word_internal (), *expand_words_internal ();
 static WORD_LIST *expand_string_leave_quoted ();
 static WORD_LIST *word_list_split ();
 static char *quote_string ();
-static int unquoted_substring (), unquoted_glob_pattern_p ();
+static int unquoted_substring (), unquoted_member ();
+static int unquoted_glob_pattern_p ();
 static void quote_list (), dequote_list ();
 static int do_assignment_internal ();
 static char *string_extract_verbatim (), *string_extract ();
@@ -740,6 +741,57 @@ char_is_quoted (string, eindex)
   return (0);
 }
 
+#if defined (READLINE)
+int
+unclosed_pair (string, eindex, openstr)
+     char *string;
+     int eindex;
+     char *openstr;
+{
+  int i, pass_next, openc, c, olen;
+  char *temp, *s;
+
+  olen = strlen (openstr);
+  for (i = pass_next = openc = 0; i <= eindex; i++)
+    {
+      if (pass_next)
+	{
+	  pass_next = 0;
+	  if (i >= eindex)	/* XXX was if (i >= eindex - 1) */
+	    return 0;
+	  continue;
+	}
+      else if (STREQN (string + i, openstr, olen))
+	{
+	  openc = 1 - openc;
+	  i += olen - 1;
+	}
+      else if (string[i] == '\'')
+	{
+	  i++;
+	  temp = string_extract_single_quoted (string, &i);
+	  free (temp);
+	  if (i > eindex)
+	    return 0;
+	}
+      else if (string[i] == '"')
+	{
+	  i++;
+	  temp = string_extract_double_quoted (string, &i);
+	  free (temp);
+	  if (i > eindex)
+	    return 0;
+	}
+      else if (string[i] == '\\')
+	{
+	  pass_next = 1;
+	  continue;
+	}
+    }
+  return (openc);
+}
+#endif /* READLINE */
+
 /* Extract the name of the variable to bind to from the assignment string. */
 char *
 assignment_name (string)
@@ -1066,7 +1118,7 @@ maybe_expand_string (string, quoted, func)
       if (EXP_CHAR (string[i]))
 	break;
       else if (string[i] == '\'' || string[i] == '\\' || string[i] == '"')
-        saw_quote = 1;
+	saw_quote = 1;
     }
 
   if (string[i])
@@ -1111,7 +1163,7 @@ do_assignment_internal (string, expand)
 
       if (expand && temp[0])
 	{
-	  if (strchr (temp, '~'))
+	  if (strchr (temp, '~') && unquoted_member ('~', temp))
 	    temp = tilde_expand (temp);
 	  else
 	    temp = savestring (temp);
@@ -1183,11 +1235,11 @@ sub_append_string (source, target, indx, size)
 
       srclen = strlen (source);
       if (srclen >= (int)(*size - *indx))
-        {
-	  n = (*indx + srclen);
+	{
+	  n = srclen + *indx;
 	  n = (n + DEFAULT_ARRAY_SIZE) - (n % DEFAULT_ARRAY_SIZE);
 	  target = xrealloc (target, (*size = n));
-        }
+	}
 
       FASTCOPY (source, target + *indx, srclen);
       *indx += srclen;
@@ -1664,9 +1716,9 @@ get_dollar_var_value (ind)
 #if defined (PROCESS_SUBSTITUTION)
 
 /* **************************************************************** */
-/*                                                                  */
-/*                    Hacking Process Substitution		    */
-/*                                                                  */
+/*								  */
+/*		    Hacking Process Substitution		    */
+/*								  */
 /* **************************************************************** */
 
 extern struct fd_bitmap *current_fds_to_close;
@@ -1972,8 +2024,11 @@ process_substitute (string, open_for_read_in_child)
     }
 
 #if defined (HAVE_DEV_FD)
-  /* Make sure we close the parent's end of the pipe. */
+  /* Make sure we close the parent's end of the pipe and clear the slot
+     in the fd list so it is not closed later, if reallocated by, for
+     instance, pipe(2). */
   close (parent_pipe_fd);
+  dev_fd_list[parent_pipe_fd] = 0;
 #endif /* HAVE_DEV_FD */
 
   result = parse_and_execute (string, "process substitution", 0);
@@ -2472,7 +2527,7 @@ parameter_brace_expand_length (name)
    case, we split on ' '. */
 
 /* Values for the local variable quoted_state. */
-#define UNQUOTED         0
+#define UNQUOTED	 0
 #define PARTIALLY_QUOTED 1
 #define WHOLLY_QUOTED    2
 
@@ -3330,7 +3385,7 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 	  if (istring_index + 1 >= istring_size)
 	    {
 	      while (istring_index + 1 >= istring_size)
-	        istring_size += DEFAULT_ARRAY_SIZE;
+		istring_size += DEFAULT_ARRAY_SIZE;
 	      istring = xrealloc (istring, istring_size);
 	    }
 	  istring[istring_index++] = c;
@@ -3550,8 +3605,6 @@ word_list_quote_removal (list, quoted)
   return (result);
 }
 
-#if defined (NOTDEF)
-/* Currently unused. */
 /* Return 1 if CHARACTER appears in an unquoted portion of
    STRING.  Return 0 otherwise. */
 static int
@@ -3597,7 +3650,6 @@ unquoted_member (character, string)
     }
   return (0);
 }
-#endif /* NOTDEF */
 
 /* Return 1 if SUBSTR appears in an unquoted portion of STRING. */
 static int
@@ -3638,8 +3690,7 @@ unquoted_substring (substr, string)
 	      temp = string_extract_single_quoted (string, &tindex);
 	    sindex = tindex;
 
-	    if (temp)
-	      free (temp);
+	    FREE (temp);
 
 	    break;
 
@@ -3788,7 +3839,7 @@ separate_out_assignments (tlist)
 	  if (lp->word->assignment)
 	    {
 	      /* Found an assignment statement, add this word to end of
-	         varlist (vp). */
+		 varlist (vp). */
 	      if (!varlist)
 		varlist = vp = lp;
 	      else
@@ -3862,7 +3913,7 @@ expand_words_internal (list, do_vars)
     {
       tlist = separate_out_assignments (tlist);
       if (!tlist)
-        {
+	{
 	  if (varlist)
 	    {
 	      /* All the words were variable assignments, so they are placed
@@ -3874,7 +3925,7 @@ expand_words_internal (list, do_vars)
 	      varlist = (WORD_LIST *)NULL;
 	    }
 	  return ((WORD_LIST *)NULL);
-        }
+	}
     }
 
   /* Begin expanding the words that remain.  The expansions take place on
@@ -3915,7 +3966,7 @@ expand_words_internal (list, do_vars)
 	      free (expansions);
 
 	      /* Add TLIST to the list of words to be freed after brace
-	         expansion has been performed. */
+		 expansion has been performed. */
 	      tlist->next = disposables;
 	      disposables = tlist;
 	    }
@@ -3964,11 +4015,11 @@ expand_words_internal (list, do_vars)
 	(tlist->word, 0, (int *)NULL, &expanded_something);
 
       if (expanded == &expand_word_error || expanded == &expand_word_fatal)
-        {
+	{
 	  /* By convention, each time this error is returned,
 	     tlist->word->word has already been freed. */
-          tlist->word->word = (char *)NULL;
-          
+	  tlist->word->word = (char *)NULL;
+	  
 	  /* Dispose our copy of the original list. */
 	  dispose_words (orig_list);
 	  /* Dispose the  new list we're building. */
@@ -4497,7 +4548,7 @@ sv_history_control (name)
       else if (strcmp (temp, "ignoredups") == 0)
 	history_control = 2;
       else if (strcmp (temp, "ignoreboth") == 0)
-        history_control = 3;
+	history_control = 3;
     }
 }
 

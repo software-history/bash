@@ -26,6 +26,10 @@
 #if !defined (_RLDEFS_H)
 #define _RLDEFS_H
 
+#if defined (HAVE_CONFIG_H)
+#  include "config.h"
+#endif
+
 #if !defined (PRAGMA_ALLOCA)
 #  include "memalloc.h"
 #endif
@@ -34,9 +38,9 @@
 #define HAVE_BSD_SIGNALS
 /* #define USE_XON_XOFF */
 
-#if defined (__linux__)
+#if defined (__linux__) || defined (HAVE_TERMCAP_H)
 #  include <termcap.h>
-#endif /* __linux__ */
+#endif /* __linux__ || HAVE_TERMCAP_H */
 
 /* Some USG machines have BSD signal handling (sigblock, sigsetmask, etc.) */
 #if defined (USG) && !defined (hpux)
@@ -45,14 +49,15 @@
 
 /* System V machines use termio. */
 #if !defined (_POSIX_VERSION)
-#  if defined (USG) || defined (hpux) || defined (Xenix) || defined (sgi) || defined (DGUX)
+#  if defined (USG) || defined (hpux) || defined (Xenix) || defined (sgi) || \
+      defined (DGUX) || defined (HAVE_TERMIO_H)
 #    undef NEW_TTY_DRIVER
 #    define TERMIO_TTY_DRIVER
 #    include <termio.h>
 #    if !defined (TCOON)
 #      define TCOON 1
 #    endif
-#  endif /* USG || hpux || Xenix || sgi || DUGX */
+#  endif /* USG || hpux || Xenix || sgi || DUGX || HAVE_TERMIO_H */
 #endif /* !_POSIX_VERSION */
 
 /* Posix systems use termios and the Posix signal functions. */
@@ -152,7 +157,7 @@ extern char *strchr (), *strrchr ();
 #if defined (OSF1) || defined (BSD386) || defined (NetBSD) || \
     defined (__BSD_4_4__) || defined (FreeBSD) || defined (_386BSD) || \
     defined (AIX)
-#  define WINSIZE_IN_IOCTL_H
+#  define GWINSZ_IN_SYS_IOCTL
 #endif
 
 /* Define _POSIX_VDISABLE if we are not using the `new' tty driver and

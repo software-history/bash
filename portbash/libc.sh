@@ -141,6 +141,32 @@ if [ -f /unix ] && [ -f /usr/ccs/lib/libc.so ]; then
 	R4="-DUSGr4"
 fi
 
-rm -f x.c x.o a.out pgrp.o
-echo "#define SYSDEP_CFLAGS $BC $UIDT $SL $PG $R4"
+touch not_a_directory
+if [ -f /usr/include/dirent.h ]; then
+	d='<dirent.h>'
+else
+	d='<sys/dir.h>'
+fi
+
+cat > x.c << EOF
+/*
+ * exit 0 if opendir does not check whether its argument is a directory
+ */
+
+#include $d
+DIR *dir;
+
+main()
+{
+	dir = opendir("not_a_directory");
+	exit (dir == 0);
+}
+EOF
+
+if ${CC} x.c > /dev/null 2>&1 && ./a.out ; then
+	OD='-DOPENDIR_NOT_ROBUST'
+fi
+
+rm -f x.c x.o a.out pgrp.o not_a_directory
+echo "#define SYSDEP_CFLAGS $BC $UIDT $SL $PG $R4 $OD"
 exit 0

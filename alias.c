@@ -27,6 +27,8 @@
 #include "hash.h"
 #include "alias.h"
 
+static int qsort_alias_compare ();
+
 /* Non-zero means expand all words on the line.  Otherwise, expand
    after first expansion if the expansion ends in a space. */
 int alias_expand_all = 0;
@@ -206,6 +208,13 @@ map_over_aliases (function)
   return (list);
 }
 
+static void
+sort_aliases (array)
+     ASSOC **array;
+{
+  qsort (array, array_len ((char **)array), sizeof (ASSOC *), qsort_alias_compare);
+}
+
 static int
 qsort_alias_compare (as1, as2)
      ASSOC **as1, **as2;
@@ -218,13 +227,6 @@ qsort_alias_compare (as1, as2)
   return (result);
 }
         
-static void
-sort_aliases (array)
-     ASSOC **array;
-{
-  qsort (array, array_len ((char **)array), sizeof (ASSOC *), qsort_alias_compare);
-}
-
 /* Return a sorted list of all defined aliases */     
 ASSOC **
 all_aliases ()

@@ -101,7 +101,7 @@
 /* We aren't currently using GNU Malloc on Suns because of a bug in Sun's
    YP which bites us when Sun free ()'s an already free ()'ed address.
    When Sun fixes their YP, we can start using our winning malloc again. */
-/* #undef USE_GNU_MALLOC */
+#undef USE_GNU_MALLOC
 
 /* Most Sun systems have signal handler functions that are void. */
 #  define VOID_SIGHANDLER
@@ -123,22 +123,23 @@
 #      define SYSDEP_LDFLAGS -Bdynamic
 #    endif /* !HAVE_GCC */
 #    define HAVE_STRERROR
-     /* The following are only available thru the BSD compatability lib. */
 #    undef HAVE_GETWD
 #    undef HAVE_SETLINEBUF
-#  else /* !SunOS5 */
-#    if defined (SunOS4)
-#      define M_OS "SunOS4"
-#      define SYSDEP_CFLAGS -DBSD_GETPGRP -DOPENDIR_NOT_ROBUST -DTERMIOS_LDISC \
-			    -DINT_GROUPS_ARRAY
-#      define HAVE_DIRENT
-#    else /* !SunOS4 */
-#      if !defined (sparc) && !defined (__sparc__)
-#        undef VOID_SIGHANDLER
-#      endif /* !sparc */
-#      define M_OS "SunOS3"
-#    endif /* !SunOS4 */
-#  endif /* !SunOS5 */
+#  endif /* SunOS5 */
+
+#  if defined (SunOS4)
+#    define M_OS "SunOS4"
+#    define SYSDEP_CFLAGS -DBSD_GETPGRP -DOPENDIR_NOT_ROBUST -DTERMIOS_LDISC \
+			  -DINT_GROUPS_ARRAY
+#    define HAVE_DIRENT
+#  endif /* SunOS4 */
+
+#  if !defined (SunOS4) && !defined (SunOS5)
+#    define M_OS "SunOS3"
+#    if !defined (sparc) && !defined (__sparc__)
+#      undef VOID_SIGHANDLER
+#    endif /* !sparc */
+#  endif /* !SunOS4 && !SunOS5 */
 
 #  if defined (mc68010)
 #    define sun2
@@ -228,6 +229,20 @@
 #  define HAVE_GETGROUPS
 #  define USE_VFPRINTF_EMULATION
 #endif /* vax && !ultrix */
+
+/* ************************ */
+/*			    */
+/*	Tahoe 4.3 BSD	    */
+/*			    */
+/* ************************ */
+#if defined (tahoe)
+#  define M_MACHINE "tahoe"
+#  define M_OS "Bsd"
+#  define HAVE_SETLINEBUF
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_GETGROUPS
+#  define HAVE_VFPRINTF
+#endif /* tahoe */
 
 /* **************************************************************** */
 /*								    */
@@ -447,7 +462,7 @@
    * Place /bsd43/bin in your PATH before /bin.
    * Use `$(CC) -E' instead of `/lib/cpp' in Makefile.
 */
-#if defined (mips) && !defined (M_MACHINE)
+#if defined (mips) && (!defined (M_MACHINE) || defined (RiscOS))
 
 #  if defined (MIPSEB)
 #    define M_MACHINE "MIPSEB"
@@ -624,7 +639,7 @@
 #    endif /* !HAVE_GCC */
 #    define HAVE_GETGROUPS
 #    if defined (USGr4_2)
-#      define SYSDEP_CFLAGS -DUSGr4 -DUSGr4_2
+#      define SYSDEP_CFLAGS -DUSGr4 -DUSGr4_2 -DNO_SBRK_DECL
 #    else
 #      define SYSDEP_CFLAGS -DUSGr4
 #    endif /* ! USGr4_2 */
@@ -701,12 +716,11 @@
 #    define done386
 #    define M_MACHINE "i386"
 #    define M_OS "SCO"
-#    define SCO_CFLAGS -DUSG -DUSGr3 -DNO_DEV_TTY_JOB_CONTROL -DPGRP_PIPE \
-		       -DOPENDIR_NOT_ROBUST
+#    define SCO_CFLAGS -DUSG -DUSGr3 -DNO_DEV_TTY_JOB_CONTROL -DPGRP_PIPE
 #    if defined (SCOv4)
 #      define SYSDEP_CFLAGS SCO_CFLAGS
 #    else /* !SCOv4 */
-#      define SYSDEP_CFLAGS SCO_CFLAGS -DBROKEN_SIGSUSPEND
+#      define SYSDEP_CFLAGS SCO_CFLAGS -DBROKEN_SIGSUSPEND -DOPENDIR_NOT_ROBUST
 #    endif /* !SCOv4 */
 #    define HAVE_VFPRINTF
 #    define VOID_SIGHANDLER
@@ -734,7 +748,6 @@
 #    define HAVE_BCOPY
 #    define USE_TERMCAP_EMULATION
 #    define SYSDEP_CFLAGS -D_BSD
-#    define SYSDEP_LDFLAGS
 #    define REQUIRED_LIBRARIES -lbsd
 #  endif /* OSF/1 */
 
@@ -965,6 +978,26 @@
 #  undef USE_GNU_MALLOC
 #endif /* NeXT */
 
+/* ********************** */
+/*                        */
+/*       m68k NetBSD      */
+/*                        */
+/* ********************** */
+#if defined (m68k) && defined (__NetBSD__)
+#  include <machine/param.h>
+#  define M_MACHINE MACHINE
+#  define M_OS "NetBSD"
+/* os/netbsd.h */
+#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_SETLINEBUF
+#  define HAVE_GETGROUPS
+#  define HAVE_VFPRINTF
+#  define HAVE_STRERROR
+#  define VOID_SIGHANDLER
+#  define HAVE_DIRENT
+#endif /* m68k && __NetBSD__ */
+
 /* ************************ */
 /*			    */
 /*	hp9000 4.4 BSD	    */
@@ -1065,7 +1098,9 @@
 	same YP bug as Sun, so we #undef USE_GNU_MALLOC. */
 #    if defined (HPUX_8)
 #      define M_OS "hpux_8"
-#      undef HAVE_ALLOCA
+#      if !defined (__GNUC__)
+#        undef HAVE_ALLOCA
+#      endif
 #      undef HAVE_GETWD
 #      undef USE_GNU_MALLOC
 #      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS
@@ -1076,11 +1111,11 @@
 #    if defined (HPUX_9)
 #      define M_OS "hpux_9"
 #      if !defined (__GNUC__)
-#        define REQUIRED_LIBRARIES -lPW
-#        undef USE_GNU_MALLOC
+#        undef HAVE_ALLOCA
 #      endif
-#      undef HAVE_RESOURCE
 #      undef HAVE_GETWD
+#      undef USE_GNU_MALLOC
+#      undef HAVE_RESOURCE
 #      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS -DHAVE_GETHOSTNAME
 #    endif /* HPUX_9 */
 
@@ -1193,6 +1228,30 @@
 #  define HAVE_ALLOCA_H		/* hack for AIX/ESA, which has malloc.h */
 #  undef USE_GNU_MALLOC
 #endif /* AIXESA || (__ibmesa && _AIX) */
+
+/* ************************ */
+/*                          */
+/*   Intel i860  -- SVR4    */
+/*                          */
+/* ************************ */
+#if defined (__i860) && defined (USGr4) && !defined (M_MACHINE)
+#  define M_MACHINE "i860"
+#  define M_OS "USG"
+#  define HAVE_DIRENT
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_VFPRINTF
+#  define VOID_SIGHANDLER
+#  define HAVE_GETGROUPS
+#  if !defined (HAVE_GCC) && !defined (HAVE_ALLOCA_H)
+#    undef HAVE_ALLOCA
+#  endif /* !HAVE_GCC && !HAVE_ALLOCA_H */
+#  if defined (USGr4_2)
+#    define SYSDEP_CFLAGS -DUSGr4 -DUSGr4_2
+#  else
+#    define SYSDEP_CFLAGS -DUSGr4
+#  endif /* ! USGr4_2 */
+#  undef HAVE_GETWD
+#endif /* __i860 && USGr4 */
 
 /* ************************ */
 /*			    */
@@ -1481,6 +1540,7 @@
 #    undef HAVE_ALLOCA
 #  endif
 #  undef HAVE_BCOPY
+#  undef HAVE_GETWD
 #  undef USE_GNU_MALLOC
 #endif /* sparc && __svr4__ */
 
@@ -1594,7 +1654,7 @@ MAKE = make
 /* This is for the DG AViiON box (runs DG/UX with both AT&T & BSD features.) */
 /* DG/UX comes standard with Gcc. */
 #if defined (__DGUX__) || defined (DGUX)
-#  define M_OS "USG"
+#  define M_OS "DGUX"
 #  if !defined (_M88KBCS_TARGET)
 #    define M_MACHINE "AViiON"
 #    define REQUIRED_LIBRARIES -ldgc
@@ -1604,7 +1664,7 @@ MAKE = make
 #    define MACHINE_CFLAGS -D_M88K_SOURCE
 #    undef HAVE_RESOURCE
 #  endif /* _M88KBCS_TARGET */
-#  define SYSDEP_CFLAGS MACHINE_CFLAGS -D_DGUX_SOURCE -DPGRP_PIPE
+#  define SYSDEP_CFLAGS MACHINE_CFLAGS -D_DGUX_SOURCE -DPGRP_PIPE -DUSG
 #  define HAVE_GCC
 #  define HAVE_FIXED_INCLUDES
 #  define HAVE_STRERROR
@@ -1906,6 +1966,24 @@ MAKE = make
 
 /* ************************ */
 /*			    */
+/*    Tandem running SVR3   */
+/*			    */
+/* ************************ */
+#if defined (tandem) && !defined (M_MACHINE)
+#  define M_MACHINE "tandem"
+#  define M_OS "USG"
+#  define SYSDEP_CFLAGS -DUSGr3
+#  define HAVE_VFPRINTF
+#  define VOID_SIGHANDLER
+   /* Alloca requires either Gcc or cc with libPW.a */
+#  if !defined (HAVE_GCC)
+#    define REQUIRED_LIBRARIES -lPW
+#  endif /* !HAVE_GCC */
+#  undef HAVE_GETWD
+#endif /* Tandem running SVR3 */
+
+/* ************************ */
+/*			    */
 /*    PCS Cadmus System	    */
 /*			    */
 /* ************************ */
@@ -1929,7 +2007,7 @@ MAKE = make
 /* **************************************************************** */
 
 /* Use this entry for your machine if it isn't represented here.  It
-   is loosely based on a Vax running 4.3 Bsd. */
+   is loosely based on a Vax running 4.3 BSD. */
 
 #if !defined (M_MACHINE)
 #  define UNKNOWN_MACHINE
@@ -1945,19 +2023,27 @@ MAKE = make
 /* Define HAVE_SYS_SIGLIST if your system has sys_siglist[]. */
 #  define HAVE_SYS_SIGLIST
 
+/* Undef HAVE_GETWD if your C library does not provide a working version
+   of getwd(). */
+/* #  undef HAVE_GETWD */
+
+/* Undef HAVE_GETCWD if your C library does not provide a working version
+   of getcwd(). */
+/* #  undef HAVE_GETCWD */
+
 /* Undef HAVE_ALLOCA if you are not using Gcc, and neither your library
    nor compiler has a version of alloca ().  In that case, we will use
    our version of alloca () in alloca.c */
-/* #undef HAVE_ALLOCA */
+/* #  undef HAVE_ALLOCA */
 
 /* Undef USE_GNU_MALLOC if there appear to be library conflicts, or if you
    especially desire to use your OS's version of malloc () and friends.  We
    reccommend against this because GNU Malloc has debugging code built in. */
-#  define USE_GNU_MALLOC
+/* #  undef USE_GNU_MALLOC */
 
 /* Define USE_GNU_TERMCAP if you want to use the GNU termcap library
    instead of your system termcap library. */
-/* #define USE_GNU_TERMCAP */
+/* #  define USE_GNU_TERMCAP */
 
 /* Define HAVE_SETLINEBUF if your machine has the setlinebuf ()
    stream library call.  Otherwise, setvbuf () will be used.  If
@@ -2003,8 +2089,6 @@ MAKE = make
 			   of integers
 	MEMMOVE_MISSING - the system does not have memmove(3)
 	MKFIFO_MISSING - named pipes do not work or mkfifo(3) is missing
-	NEED_SYS_PARAM - MAXPATHLEN is defined in <sys/param.h>.  This is
-			 used by maxpath.h
 	NO_DEV_TTY_JOB_CONTROL - system can't do job control on /dev/tty
 	NO_SBRK_DECL - don't declare sbrk as extern char *sbrk() in
 		       lib/malloc/malloc.c
@@ -2029,32 +2113,32 @@ MAKE = make
 
 /* Define HAVE_STRERROR if your system supplies a definition for strerror ()
    in the C library, or a macro in a header file. */
-/* #define HAVE_STRERROR */
+/* #  define HAVE_STRERROR */
 
-/* Define HAVE_STRCASECMPif your system supplies definitions for the caseless
-   string comparison functions strcasecmp and strncasemp in libc or one of
-   the system header files. */
-/* #define HAVE_STRCASECMP */
+/* Define HAVE_STRCASECMP if your system supplies definitions for the
+   casel-insensitive string comparison functions strcasecmp and strncasemp
+   in the C library or one of the system header files. */
+/* #  define HAVE_STRCASECMP */
 
 /* Define HAVE_DIRENT if you have the dirent library and a definition of
    struct dirent.  If not, the BSD directory reading library and struct
    direct are assumed. */
-/* #define HAVE_DIRENT */
+/* #  define HAVE_DIRENT */
 
 /* If your system does not supply /usr/lib/libtermcap.a, but includes
    the termcap routines as a part of the curses library, then define
    this.  This is the case on some System V machines. */
-/* #define USE_TERMCAP_EMULATION */
+/* #  define USE_TERMCAP_EMULATION */
 
 /* Define VOID_SIGHANDLER if your system's signal () returns a pointer to
    a function returning void. */
-/* #define VOID_SIGHANDLER */
+/* #  define VOID_SIGHANDLER */
 
 /* Define EXTRA_LIB_SEARCH_PATH if your required libraries (or standard)
    ones for that matter) are not normally in the ld search path.  For
    example, some machines require /usr/ucblib in the ld search path so
    that they can use -lucb. */
-/* #define EXTRA_LIB_SEARCH_PATH /usr/ucblib */
+/* #  define EXTRA_LIB_SEARCH_PATH /usr/ucblib */
 
 /* Define SEARCH_LIB_NEEDS_SPACE if your native ld requires a space after
    the -L argument, which gives the name of an alternate directory to search
@@ -2064,11 +2148,12 @@ MAKE = make
    instead of:
    	-Llib/readline -lreadline
  */
-/* #define SEARCH_LIB_NEEDS_SPACE */
+/* #  define SEARCH_LIB_NEEDS_SPACE */
 
 /* Define LD_HAS_NO_DASH_L if your ld can't grok the -L flag in any way, or
    if it cannot grok the -l<lib> flag, or both. */
-/* #define LD_HAS_NO_DASH_L */
+/* #  define LD_HAS_NO_DASH_L */
+
 #  if defined (LD_HAS_NO_DASH_L)
 #   undef SEARCH_LIB_NEEDS_SPACE
 #  endif /* LD_HAS_NO_DASH_L */

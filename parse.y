@@ -60,6 +60,12 @@ extern int last_command_exit_value;
 extern int interrupt_immediately;
 extern char *shell_name, *current_host_name;
 extern Function *last_shell_builtin, *this_shell_builtin;
+#if defined (READLINE)
+extern int bash_readline_initialized;
+#endif
+#if defined (BUFFERED_INPUT)
+extern int bash_input_fd_changed;
+#endif
 
 /* **************************************************************** */
 /*								    */
@@ -798,8 +804,6 @@ char *current_readline_prompt = (char *)NULL;
 char *current_readline_line = (char *)NULL;
 int current_readline_line_index = 0;
 
-static int readline_initialized_yet = 0;
-
 static int
 yy_readline_get ()
 {
@@ -808,11 +812,8 @@ yy_readline_get ()
       SigHandler *old_sigint;
       int line_len;
 
-      if (!readline_initialized_yet)
-	{
-	  initialize_readline ();
-	  readline_initialized_yet = 1;
-	}
+      if (!bash_readline_initialized)
+	initialize_readline ();
 
 #if defined (JOB_CONTROL)
       if (job_control)
@@ -1006,6 +1007,8 @@ push_stream ()
 
 pop_stream ()
 {
+  int temp;
+
   if (!stream_list)
     EOF_Reached = 1;
   else
@@ -1023,9 +1026,22 @@ pop_stream ()
 
 #if defined (BUFFERED_INPUT)
       /* If we have a buffered stream, restore buffers[fd]. */
-      /* XXX - what about default_buffered_input? - XXX */
+      /* If the input file descriptor was changed while this was on the
+	 save stack, update the buffered fd to the new file descriptor and
+	 re-establish the buffer <-> bash_input fd correspondence. */
       if (bash_input.type == st_bstream && bash_input.location.buffered_fd >= 0)
-        buffers[bash_input.location.buffered_fd] = saver->bstream;
+        {
+          if (bash_input_fd_changed)
+	    {
+	      bash_input_fd_changed = 0;
+	      if (default_buffered_input >= 0)
+		{
+		  bash_input.location.buffered_fd = default_buffered_input;
+		  saver->bstream->b_fd = default_buffered_input;
+		}
+	    }
+	  buffers[bash_input.location.buffered_fd] = saver->bstream;
+        }
 #endif /* BUFFERED_INPUT */
 
       line_number = saver->line;
@@ -1395,7 +1411,7 @@ shell_getc (remove_quoted_newline)
 	  QUIT;
 
 	  if (i + 2 > shell_input_line_size)
-	    shell_input_line = (char *)
+	    shell_input_line =
 	      xrealloc (shell_input_line, shell_input_line_size += 256);
 
 	  if (c == EOF)

@@ -78,14 +78,14 @@ bind_builtin (list)
   lflag = dflag = vflag = fflag = qflag = mflag = 0;
   initfile = map_name = fun_name = (char *)NULL;
 
+  if (!bash_readline_initialized)
+    initialize_readline ();
+
   /* Cannot use unwind_protect_pointer () on "FILE *", it is only
      guaranteed to work for strings. */
   /* XXX -- see if we can use unwind_protect here */
   old_rl_outstream = rl_outstream;
   rl_outstream = stdout;
-
-  if (!bash_readline_initialized)
-    initialize_readline ();
 
   reset_internal_getopt ();  
   while ((opt = internal_getopt (list, "lvdf:q:m:")) != EOF)

@@ -2,7 +2,7 @@
 #
 # Makefile for Bash.
 # If your cpp doesn't like -P, just get rid of it (the -P, not cpp).
-# If you wish to use Gcc, then type `make CC=gcc CPPNAME="$(CC) -E"'.
+# If you wish to use Gcc, then type `make CC=gcc CPPNAME='$(CC) -E''.
 # If you wish to use GNU's Make, then change `MAKE'.
 # If you don't like the destination, then change `bindir'.
 # The file that you most likely want to look at is cpp-Makefile.
@@ -85,13 +85,11 @@ ansi-Makefile: $(CPP_MAKEFILE)
 # Subsequent lines contain targets that are correctly handled by an
 # existing bash-Makefile.
 
-DEFINES newversion mailable distribution architecture: bash-Makefile
-	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
+install uninstall newversion architecture: bash-Makefile
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) \
+		prefix=$(prefix) $@
 
-install uninstall: bash-Makefile
-	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
-
-tests bash.tar.Z tags documentation clone: bash-Makefile directory-frob
+tests DEFINES tags documentation: bash-Makefile directory-frob
 	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
 
 clean distclean realclean: bash-Makefile directory-frob

@@ -89,7 +89,7 @@ wait_builtin (list)
 	    }
 	  else
 	    {
-	      builtin_error ("`%s' is not a pid or job spec", w);
+	      builtin_error ("`%s' is not a pid or legal job spec", w);
 	      status = EXECUTION_FAILURE;
 	      goto return_status;
 	    }

@@ -515,7 +515,10 @@ rl_read_init_file (filename)
 
       /* Skip leading whitespace. */
       while (*line && whitespace (*line))
-	line++;
+        {
+	  line++;
+	  i--;
+        }
 
       /* If the line is not a comment, then parse it. */
       if (*line && *line != '#')
@@ -1171,8 +1174,8 @@ rl_set_keymap_from_edit_mode ()
 
 /* Print the names of functions known to Readline. */
 void
-rl_list_funmap_names (ignore)
-     int ignore;
+rl_list_funmap_names (count, ignore)
+     int count, ignore;
 {
   register int i;
   char **funmap_names;
@@ -1216,7 +1219,7 @@ rl_invoking_keyseqs_in_map (function, map)
 	    {
 	      char *keyname = (char *)xmalloc (5);
 
-	      if (CTRL_P (key))
+	      if (CTRL_CHAR (key))
 		sprintf (keyname, "\\C-%c", to_lower (UNCTRL (key)));
 	      else if (key == RUBOUT)
 		sprintf (keyname, "\\C-?");
@@ -1261,7 +1264,7 @@ rl_invoking_keyseqs_in_map (function, map)
 
 		    if (key == ESC)
 		      sprintf (keyname, "\\e");
-		    else if (CTRL_P (key))
+		    else if (CTRL_CHAR (key))
 		      sprintf (keyname, "\\C-%c", to_lower (UNCTRL (key)));
 		    else if (key == RUBOUT)
 		      sprintf (keyname, "\\C-?");

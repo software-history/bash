@@ -17,7 +17,7 @@ Therefore, for most machines, simply follow this simple checklist
 to install BASH:
 
   1. Type `make'.  If you want to use GCC to compile bash, type
-     `make CC=gcc CPPNAME="$(CC) -E"'.
+     `make CC=gcc CPPNAME='$(CC) -E''.
 
   2. Wait for the compilation to finish.
 

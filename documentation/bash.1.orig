@@ -3579,9 +3579,7 @@ or
 .B until
 loop.  If \fIn\fP is specified, break \fIn\fP levels.
 .I n
-must be
-\(>=
-1.  If
+must be \(>= 1.  If
 .I n
 is greater than the number of enclosing loops, all enclosing loops
 are exited.  The return value is 0 unless the shell is not executing
@@ -3691,9 +3689,7 @@ If
 .I n
 is specified, resume at the \fIn\fPth enclosing loop.
 .I n
-must be
-\(>=
-1.  If
+must be \(>= 1.  If
 .I n
 is greater than the number of enclosing loops, the last enclosing loop
 (the `top\-level' loop) is resumed.  The return value is 0 unless the
@@ -5319,10 +5315,10 @@ version of
 that you have.
 .PP
 Once you have determined that a bug actually exists, mail a
-bug report to \fIbash\-maintainers\fP@\fIai.MIT.Edu\fP.
+bug report to \fIbash\-maintainers\fP@\fIprep.ai.MIT.Edu\fP.
 If you have a fix, you are welcome to mail that
 as well!  Suggestions and `philosophical' bug reports may be mailed
-to \fPbug-bash\fP@\fIai.MIT.Edu\fP or posted to the Usenet
+to \fPbug-bash\fP@\fIprep.ai.MIT.Edu\fP or posted to the Usenet
 newsgroup
 .BR gnu.bash.bug .
 .PP

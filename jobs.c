@@ -191,6 +191,12 @@ static void mark_dead_jobs_as_notified ();
 static void pipe_read (), pipe_close ();
 #endif
 
+/* Set this to non-zero whenever you don't want the jobs list to change at
+   all: no jobs deleted and no status change notifications.  This is used,
+   for example, when executing SIGCHLD traps, which may run arbitrary
+   commands. */
+static int freeze_jobs_list;
+
 #if !defined (_POSIX_VERSION)
 
 /* These are definitions to map POSIX 1003.1 functions onto existing BSD
@@ -478,7 +484,7 @@ cleanup_dead_jobs ()
   register int i;
   sigset_t set, oset;
 
-  if (!job_slots)
+  if (!job_slots || freeze_jobs_list)
     return;
 
   BLOCK_CHILD (set, oset);
@@ -496,8 +502,12 @@ void
 delete_job (job_index)
      int job_index;
 {
-  register JOB *temp = jobs[job_index];
+  register JOB *temp;
 
+  if (freeze_jobs_list)
+    return;
+
+  temp = jobs[job_index];
   if (job_index == current_job || job_index == previous_job)
     reset_current ();
 
@@ -984,7 +994,7 @@ make_child (command, async_p)
       throw_to_top_level ();	/* Reset signals, etc. */
     }
 
-  if (!pid)
+  if (pid == 0)
     {
       /* In the child.  Give this child the right process group, set the
 	 signals to the default state for a new process. */
@@ -1309,7 +1319,7 @@ wait_for_background_pids ()
 
       for (i = 0; i < job_slots; i++)
 	if (jobs[i] && (JOBSTATE (i) == JRUNNING) &&
-	    !(jobs[i]->flags & J_FOREGROUND))
+	    (jobs[i]->flags & J_FOREGROUND) == 0)
 	  {
 	    count++;
 	    break;
@@ -1323,7 +1333,7 @@ wait_for_background_pids ()
 
       for (i = 0; i < job_slots; i++)
 	if (jobs[i] && (JOBSTATE (i) == JRUNNING) &&
-	    !(jobs[i]->flags & J_FOREGROUND))
+	    (jobs[i]->flags & J_FOREGROUND) == 0)
 	  {
 	    pid_t pid = last_pid (i);
 	    UNBLOCK_CHILD (oset);
@@ -1348,6 +1358,8 @@ restore_sigint_handler ()
     }
 }
 
+static int wait_sigint_received = 0;
+
 /* Handle SIGINT while we are waiting for children in a script to exit.
    The `wait' builtin should be interruptible, but all others should be
    effectively ignored (i.e. not cause the shell to exit). */
@@ -1364,9 +1376,9 @@ wait_sigint_handler (sig)
       QUIT;
     }
 
+  wait_sigint_received = 1;	/* XXX - should this be interrupt_state? */
   /* Otherwise effectively ignore the SIGINT and allow the running job to
      be killed. */
-  /* XXX - should this set interrupt_state if job control is not enabled? */
 #if !defined (VOID_SIGHANDLER)
   return (0);
 #endif /* !VOID_SIGHANDLER */
@@ -1406,6 +1418,7 @@ wait_for (pid)
      the shell, and the shell will see any signals the job gets. */
 
   /* This is possibly a race condition -- should it go in stop_pipeline? */
+  wait_sigint_received = 0;
   if (!job_control)
     old_sigint_handler = set_signal_handler (SIGINT, wait_sigint_handler);
 
@@ -1554,6 +1567,9 @@ wait_for_job (job)
 void
 notify_and_cleanup ()
 {
+  if (freeze_jobs_list)
+    return;
+
   if (interactive)
     notify_of_job_status ();
 
@@ -1851,9 +1867,9 @@ start_job (job, foreground)
    job after giving it SIGNAL.  Returns -1 on failure.  If GROUP is non-null,
    then kill the process group associated with PID. */
 int
-kill_pid (pid, signal, group)
+kill_pid (pid, sig, group)
      pid_t pid;
-     int signal, group;
+     int sig, group;
 {
   register PROCESS *p;
   int job, result = EXECUTION_SUCCESS;
@@ -1876,29 +1892,27 @@ kill_pid (pid, signal, group)
 
 	      do
 		{
-		  kill (p->pid, signal);
-		  if (!p->running && (signal == SIGTERM || signal == SIGHUP))
+		  kill (p->pid, sig);
+		  if (p->running == 0 && (sig == SIGTERM || sig == SIGHUP))
 		    kill (p->pid, SIGCONT);
 		  p = p->next;
-		} while (p != jobs[job]->pipe);
+		}
+	      while (p != jobs[job]->pipe);
 	    }
 	  else
 	    {
-	      result = killpg (jobs[job]->pgrp, signal);
+	      result = killpg (jobs[job]->pgrp, sig);
 	      if (p && (JOBSTATE (job) == JSTOPPED) &&
-		  (signal == SIGTERM || signal == SIGHUP))
+		  (sig == SIGTERM || sig == SIGHUP))
 		killpg (jobs[job]->pgrp, SIGCONT);
 	    }
 	}
       else
-	{
-	  result = killpg (pid, signal);
-	}
+	result = killpg (pid, sig);
     }
   else
-    {
-      result = kill (pid, signal);
-    }
+    result = kill (pid, sig);
+
   UNBLOCK_CHILD (oset);
   return (result);
 }
@@ -2013,11 +2027,25 @@ flush_child (sig)
 			  if (job == last_stopped_job)
 			    last_stopped_job = NO_JOB;
 
-			  /* If the foreground job is killed by SIGINT, we
-			     need to perform some special handling. */
+			  /* If the foreground job is killed by SIGINT when
+			     job control is not active, we need to perform
+			     some special handling. */
+			  /* The check of wait_sigint_received is a way to
+			     determine if the SIGINT came from the keyboard
+			     (in which case the shell has already seen it,
+			     and wait_sigint_received is non-zero, because
+			     keyboard signals are sent to process groups)
+			     or via kill(2) to the foreground process by
+			     another process (or itself).  If the shell did
+			     receive the SIGINT, it needs to perform normal
+			     SIGINT processing. */
 			  if ((WTERMSIG (jobs[job]->pipe->status) == SIGINT) &&
-			      (jobs[job]->flags & J_FOREGROUND))
+			      (jobs[job]->flags & J_FOREGROUND) &&
+			      (jobs[job]->flags & J_JOBCONTROL) == 0 &&
+			      wait_sigint_received)
 			    {
+			      wait_sigint_received = 0;
+
 			      /* If SIGINT is trapped, set the exit status so
 				 that the trap handler can see it. */
 			      if (signal_is_trapped (SIGINT))
@@ -2026,47 +2054,24 @@ flush_child (sig)
 
 			      /* If the signal is trapped, let the trap handler
 				 get it no matter what and simply return if
-				 the trap handler returns. */
-			      if (maybe_call_trap_handler (SIGINT) == 0)
+				 the trap handler returns.
+			         maybe_call_trap_handler may cause dead jobs
+				 to be removed from the job table because of
+				 a call to execute_command.  Watch out for
+				 this. */
+			      if (maybe_call_trap_handler (SIGINT) == 0 &&
+			          old_sigint_handler != INVALID_SIGNAL_HANDLER)
 				{
-				  /* If it isn't trapped, and the job was
-				     started with job control enabled, let the
-				     shell know that the signal occurred. */
-				  if (jobs[job]->flags & J_JOBCONTROL)
-				    sigint_sighandler (SIGINT);
-				  else
-				    {
-				      /* No job control.
-					 wait_sigint_handler () has already
-					 seen SIGINT and allowed the wait
-					 builtin to jump out.  We need to
-					 call the original SIGINT handler. */
-				      if (old_sigint_handler !=
-					  INVALID_SIGNAL_HANDLER)
-					{
-					  SigHandler *temp_handler;
-					  temp_handler = old_sigint_handler;
-					  restore_sigint_handler ();
-					  (*temp_handler) (SIGINT);
-					}
-				    }
+				  /* wait_sigint_handler () has already
+				     seen SIGINT and allowed the wait
+				     builtin to jump out.  We need to
+				     call the original SIGINT handler. */
+				  SigHandler *temp_handler;
+				  temp_handler = old_sigint_handler;
+				  restore_sigint_handler ();
+				  (*temp_handler) (SIGINT);
 				}
 			    }
-			  /* maybe_call_trap_handler may cause dead jobs to be
-			     removed from the job table because of a call to
-			     execute_command.  Watch out for this, even though
-			     the code below is not executed. */
-#if 0
-			  /* The job exited for some reason other than SIGINT.
-			     If the `foreground' job exits, we may need to
-			     reset the SIGINT signal handler back to what
-			     it is normally. */
-			  /* XXX - why are we doing this?  Doesn't wait_for
-			     do this? */
-			  if ((jobs[job]->flags & J_FOREGROUND) &&
-			      !(jobs[job]->flags & J_JOBCONTROL))
-			    restore_sigint_handler ();
-#endif
 			}
 		    }
 		}
@@ -2107,6 +2112,7 @@ flush_child (sig)
       unwind_protect_int (last_command_exit_value);
       unwind_protect_int (last_made_pid);
       unwind_protect_int (interrupt_immediately);
+      unwind_protect_int (freeze_jobs_list);
       unwind_protect_pointer (the_pipeline);
 
       /* We have to add the commands this way because they will be run
@@ -2117,6 +2123,7 @@ flush_child (sig)
 
       the_pipeline = (PROCESS *)NULL;
       restore_default_signal (SIGCHLD);
+      freeze_jobs_list = 1;
       while (children_exited--)
 	{
 	  interrupt_immediately = 1;
@@ -2469,7 +2476,7 @@ cont_signal_handler (sig)
      int sig;
 {
   initialize_job_signals ();
-  signal (SIGCONT, old_cont);
+  set_signal_handler (SIGCONT, old_cont);
   kill (getpid (), SIGCONT);
 
 #if !defined (VOID_SIGHANDLER)

@@ -134,6 +134,7 @@ extern gid_t getgid ();
 static int pos;		/* The offset of the current argument in ARGV. */
 static int argc;	/* The number of arguments present in ARGV. */
 static char **argv;	/* The argument list. */
+static int noeval;
 
 static int isint ();
 static int unop ();
@@ -181,7 +182,7 @@ test_stat (path, finfo)
   if (path[0] == '/' && path[1] == 'd' && strncmp (path, "/dev/fd/", 8) == 0)
     {
       int fd;
-      if (isint (path + 9, &fd))
+      if (isint (path + 8, &fd))
 	return (fstat (fd, finfo));
       else
 	{
@@ -1119,6 +1120,7 @@ test_command (margc, margv)
   if (pos >= argc)
     test_exit (SHELL_BOOLEAN (FALSE));
 
+  noeval = 0;
   value = posixtest ();
 
   if (pos != argc)

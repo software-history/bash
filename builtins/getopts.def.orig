@@ -75,7 +75,6 @@ $END
 #define G_ARG_MISSING	(-3)
 
 extern char *this_command_name;
-extern WORD_LIST *rest_of_args;
 
 /* getopts_reset is magic code for when OPTIND is reset.  N is the
    value that has just been assigned to OPTIND. */
@@ -151,32 +150,15 @@ dogetopts (argc, argv)
       sh_getopt_restore_state (argv);
       t = argv[0];
       argv[0] = dollar_vars[0];
-      ret = getopt (argc, argv, optstr);
+      ret = getopt(argc, argv, optstr);
       argv[0] = t;
     }
-  else if (rest_of_args == (WORD_LIST *)NULL)
+  else
     {
       register int i;
 
       for (i = 0; dollar_vars[i]; i++);
       ret = getopt (i, dollar_vars, optstr);
-    }
-  else
-    {
-      register int i;
-      register WORD_LIST *words;
-      char **v;
-
-      for (i = 0; dollar_vars[i]; i++);
-      for (words = rest_of_args; words; words = words->next, i++);
-      v = (char **)xmalloc ((i + 1) * sizeof (char *));
-      for (i = 0; dollar_vars[i]; i++)
-        v[i] = dollar_vars[i];
-      for (words = rest_of_args; words; words = words->next, i++)
-        v[i] = words->word->word;
-      v[i] = (char *)NULL;
-      ret = getopt (i, v, optstr);
-      free (v);
     }
 
   if (special_error)
@@ -195,7 +177,7 @@ dogetopts (argc, argv)
       n = optind;
       do
 	{
-	  numval[--i] = (n % 10) + '0';
+	  numval[--i] = (n % 10) + '\0';
 	}
       while (n /= 10);
     }

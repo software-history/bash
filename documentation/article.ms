@@ -17,7 +17,7 @@ Chet Ramey
 Case Western Reserve University
 chet@po.cwru.edu
 .FS
-*This article is to appear in The Linux Journal.
+*An earlier version of this article appeared in The Linux Journal.
 .FE
 .NH 1
 Introduction
@@ -36,7 +36,7 @@ of \s-1UNIX\s+1.
 Bash is an \fBsh\fP\-compatible shell that incorporates useful
 features from the Korn shell (\fBksh\fP) and the C shell (\fBcsh\fP),
 described later in this article.  It is ultimately intended to be a
-conformant implementation of the IEEE POSIX Shell and Tools
+conformant implementation of the IEEE POSIX Shell and Utilities
 specification (IEEE Working Group 1003.2).  It offers functional
 improvements over sh for both interactive and programming use.
 .PP
@@ -65,8 +65,13 @@ at the system call and C library level to applications and tools to system
 administration and management.  Each area of standardization is
 assigned to a working group in the 1003 series.
 .PP
-The POSIX Shell and Tools standard has been developed by IEEE Working
-Group 1003.2 (POSIX.2).
+The POSIX Shell and Utilities standard has been developed by IEEE Working
+Group 1003.2 (POSIX.2).\(dd
+.FS
+\(ddIEEE, \fIIEEE Standard for Information Technology -- Portable
+Operating System Interface (POSIX) Part 2: Shell and Utilities\fP,
+1992.
+.FE
 It concentrates on the command interpreter
 interface and utility programs
 commonly executed from the command line or by other programs.
@@ -138,6 +143,7 @@ the UPE, including job control and command line editing.
 Interestingly enough, only \fIvi\fP-style line editing commands
 have been standardized; \fIemacs\fP editing commands were left
 out due to objections.
+.PP
 While POSIX.2 includes much of what the shell has traditionally
 provided, some important things have been omitted as being
 \*Qbeyond its scope.\*U  There is, for instance, no mention of
@@ -174,7 +180,7 @@ Bourne shell.  Where differences appear between the POSIX.2
 standard and traditional sh behavior, Bash follows POSIX.
 .PP
 The Korn Shell (\fBksh\fP) is a descendent of the Bourne shell written
-at AT&T Bell Laboratories by David Korn.  It provides a number of
+at AT&T Bell Laboratories by David Korn\(dg.  It provides a number of
 useful features that POSIX and Bash have adopted.  Many of the
 interactive facilities in POSIX.2 have their roots in the ksh:
 for example, the POSIX and ksh job control facilities are nearly
@@ -189,6 +195,10 @@ the
 builtin,
 the ability to remove substrings from variables based on patterns,
 and shell arithmetic.
+.FS
+\(dgMorris Bolsky and David Korn, \fIThe KornShell Command and
+Programming Language\fP, Prentice Hall, 1989.
+.FE
 .B RANDOM
 expands to a random number each time it is referenced; assigning a
 value to
@@ -219,12 +229,12 @@ such as
 .B jobs .
 Bash aliases allow a string to be substituted for a command name.
 They can be used to create a mnemonic for a \s-1UNIX\s+1 command
-name (\fBalias del=rm\fP), to expand a single word to a complex command
-(\fBalias news='xterm -g 80x45 -title trn -e trn -e -S1 -N &'\fP), or to
+name (\f(CRalias del=rm\fP), to expand a single word to a complex command
+(\f(CRalias news='xterm -g 80x45 -title trn -e trn -e -S1 -N &'\fP), or to
 ensure that a command is invoked with a basic set of options
-(\fBalias ls="/bin/ls -F"\fP).
+(\f(CRalias ls="/bin/ls -F"\fP).
 .PP
-The C shell (\fBcsh\fP), originally written by Bill Joy while at
+The C shell (\fBcsh\fP)\(dg, originally written by Bill Joy while at
 Berkeley, is widely used and quite popular for its interactive
 facilities.  Bash includes a csh-compatible history expansion
 mechanism (\*Q! history\*U), brace expansion, access to a stack
@@ -236,6 +246,10 @@ and
 builtins, and tilde expansion, to generate users' home directories.
 Tilde expansion has also been adopted by both the Korn Shell and
 POSIX.2.
+.FS
+\(dgBill Joy, An Introduction to the C Shell, \fIUNIX User's Supplementary
+Documents\fP, University of California at Berkeley, 1986.
+.FE
 .PP
 There were certain areas in which POSIX.2 felt standardization
 was necessary, but no existing implementation provided the proper
@@ -278,7 +292,7 @@ and the new algorithm for the
 builtin from the POSIX.2 standard, none of which appear in sh.
 .PP
 Bash also implements the \*Q$(...)\*U command substitution syntax,
-which replaces the sh `...` construct.
+which supersedes the sh `...` construct.
 The \*Q$(...)\*U construct expands to the output of the command
 contained within the
 parentheses, with trailing newlines removed.  The sh syntax is
@@ -286,9 +300,9 @@ accepted for backwards compatibility, but the \*Q$(...)\*U form
 is preferred because its quoting rules are much simpler and it
 is easier to nest.
 .PP
-The Bourne shell does not have such features as brace expansion,
+The Bourne shell does not provide such features as brace expansion,
 the ability
-to have a variable and a function with the same name, local variables
+to define a variable and a function with the same name, local variables
 in shell functions, the ability to enable and disable individual
 builtins or write a function to replace a builtin, or a means to
 export a shell function to a child process.
@@ -299,7 +313,8 @@ a long-standing shell security hole by not using the
 variable to split each word read by the shell, but splitting only
 the results of expansion (ksh and the 4.4 BSD sh have fixed this
 as well).  Useful behavior such as a means to abort
-execution of a script read with the \*Q.\*U command or automatically
+execution of a script read with the \*Q.\*U command using the
+\fBreturn\fP builtin or automatically
 exporting variables in the shell's environment to children is also
 not present in the Bourne shell.  Bash provides a much more powerful
 environment for both interactive use and programming.
@@ -330,7 +345,10 @@ if set, as the name of a startup file.  The ksh practice of reading
 for every shell, with the accompanying difficulty of defining the
 proper variables and functions for interactive and non-interactive
 shells or having the file read only for interactive shells, was
-considered too complex.  Ease of use won out here.
+considered too complex.  Ease of use won out here.  Interestingly,
+the next release of ksh will change to reading
+.B $ENV
+only for interactive shells.
 .NH 2
 New Builtin Commands
 .PP
@@ -341,7 +359,7 @@ builtin allows builtin commands to be turned on and off arbitrarily.
 To use the version of
 .I echo
 found in a user's search path rather than the Bash builtin,
-\*Qenable -n echo\*U suffices.  The
+\f(CRenable -n echo\fP suffices.  The
 .B help
 builtin provides
 quick synopses of the shell facilities without requiring
@@ -408,8 +426,8 @@ Editing and Completion
 One area in which Bash shines is command line editing.  Bash uses the
 .I readline
 library to read and edit lines when interactive.  Readline is a
-powerful and flexible input facility that a user can configure to his
-tastes.  It allows lines to be edited using either emacs
+powerful and flexible input facility that a user can configure to
+individual tastes.  It allows lines to be edited using either emacs
 or vi commands, where those commands are appropriate.  The full
 capability of emacs is not present \- there is no way to execute
 a named command with M-x, for instance \- but the existing commands
@@ -459,8 +477,8 @@ and double-quote the current or previous word:
 $if Bash
 # edit the path
 "\eC-xp": "PATH=${PATH}\ee\eC-e\eC-a\eef\eC-f"
-# prepare to type a quoted word -- insert open and close double quotes
-# and move to just after the open quote
+# prepare to type a quoted word -- insert open and close double
+# quotes and move to just after the open quote
 "\eC-x\e"": "\e"\e"\eC-b"
 # Quote the current or previous word
 "\eC-xq": "\eeb\e"\eef\e""
@@ -489,7 +507,7 @@ passes them to readline.  In its most common usage,
 .B bind
 takes a single string and passes it directly to readline, which
 interprets the line as if it had just been read from the inputrc file.
-Both key bindings and variable assignments can appear in the
+Both key bindings and variable assignments may appear in the
 string given to
 .B bind .
 .PP
@@ -526,7 +544,7 @@ and
 builtins to manipulate the history list.
 The value of
 .B $HISTFILE
-specifes the file where bash writes the command history on exit and
+specifes the file where Bash writes the command history on exit and
 reads it on startup.
 .B $HISTSIZE
 is used to limit the number of commands saved in the history.
@@ -602,10 +620,10 @@ starting a new process.
 Brace Expansion
 .PP
 Since sh offers no convenient way to generate arbitrary strings that
-share a common prefix or suffix (pathname expansion requires that
+share a common prefix or suffix (filename expansion requires that
 the filenames exist), Bash implements \fIbrace expansion\fP, a
 capability picked up from csh.
-Brace expansion is similar to pathname expansion, but the strings
+Brace expansion is similar to filename expansion, but the strings
 generated need not correspond to existing files.  A brace expression
 consists of an optional
 .I preamble ,
@@ -618,6 +636,9 @@ postamble is then appended to each resulting string:
 $ echo a{d,c,b}e
 ade ace abe
 .EE
+.LP
+As this example demonstrates, the results of brace expansion are not
+sorted, as they are by filename expansion.
 .NH 2
 Process Substitution
 .PP
@@ -731,6 +752,11 @@ $ pwd
 /usr/local
 $ /bin/pwd
 /net/share/sun4/local
+$ cd ..
+$ pwd
+/usr
+$ /bin/pwd
+/usr
 .EE
 .LP
 One problem with this, of
@@ -780,28 +806,26 @@ implements a \fIPOSIX mode\fP.  When this mode is active, Bash modifies
 its default operation where it differs from POSIX.2 to match the
 standard.  POSIX mode is entered when Bash is started with the
 .B -posix
-option.  Future releases of Bash will make this an option to the
+option.  This feature is also available as an option to the
 \fBset\fP builtin, \fBset -o posix\fP.
 For compatibility with other GNU software that attempts to be POSIX.2
 compliant, Bash also enters POSIX mode if the variable
 .B $POSIXLY_CORRECT
 is set when Bash is started or assigned a value during execution.
-Future versions will accept
 .B $POSIX_PEDANTIC
-as well, to be compatible, paradoxically, with some older
-GNU utilities.
+is accepted as well, to be compatible with some older GNU utilities.
 When Bash is started in POSIX mode, for example, it sources the
 file named by the value of 
 .B $ENV
 rather than the \*Qnormal\*U startup files, and does not allow
 reserved words to be aliased.
 .NH 1
-Future Plans
+New Features and Future Plans
 .PP
-There are several features that will be introduced in the next
+There are several features introduced in the current
 version of Bash, version 1.14, and a number under consideration
 for future releases.  This section will briefly detail the new
-features planned for version 1.14 and describe several features
+features in version 1.14 and describe several features
 that may appear in later versions.
 .NH 2
 New Features in Bash-1.14
@@ -830,12 +854,11 @@ The history expansion facilities are now nearly
 completely csh-compatible: missing modifiers have been added and
 history substitution has been extended.
 .PP
-Several of the features described earlier as appearing in future
-releases, such as
+Several of the features described earlier, such as
 .B "set -o posix"
 and
 .B $POSIX_PEDANTIC ,
-are present in version 1.14.
+are new in version 1.14.
 There is a new shell variable,
 .B OSTYPE ,
 to which Bash assigns a value that identifies the
@@ -933,8 +956,8 @@ which would contain a colon-separated list of commands.  Lines beginning
 with these commands, after the restrictions of
 .B $HISTCONTROL
 have been applied, would not be placed onto the history list.  The
-shell pattern-matching capabilities could also be available when specifying
-the contents of
+shell pattern-matching capabilities could also be available when
+specifying the contents of
 .B $HISTIGNORE .
 .PP
 One thing that newer shells such as
@@ -981,16 +1004,21 @@ and people use all of them.  In the original description of the
 Bourne shell, quoting and the shell grammar are both poorly
 specified and incomplete; subsequent descriptions have not helped
 much.  The grammar presented in Bourne's paper describing
-the shell distributed with the Seventh Edition of \s-1UNIX\s+1
+the shell distributed with the Seventh Edition of \s-1UNIX\s+1\(dg
 is so far off that it does not allow the command \f(CWwho|wc\fP.
 In fact, as Tom Duff states:
 .QP
 Nobody really knows what the
 Bourne shell's grammar is.  Even examination of the source code is
-little help.\(dg
+little help.\(dd
 .FS
-\(dgTom Duff, \*QRc \- A Shell for Plan 9 and \s-1UNIX\s+1 systems\*U, Proc.
-of the Summer 1990 EUUG Conf., London, July, 1990, pp. 21-33
+\(dgS. R. Bourne, \*QUNIX Time-Sharing System:  The UNIX Shell\*U,
+\fIBell System Technical Journal\fP, 57(6), July-August, 1978, pp. 1971-1990.
+.FE
+.FS
+\(ddTom Duff, \*QRc \- A Shell for Plan 9 and \s-1UNIX\s+1 systems\*U,
+\fIProc. of the Summer 1990 EUUG Conference\fP, London, July, 1990,
+pp. 21-33.
 .FE
 .LP
 The POSIX.2 standard includes a \fIyacc\fP grammar that comes close
@@ -1039,7 +1067,7 @@ As with all other
 GNU software, Bash is available for anonymous FTP from
 .I prep.ai.mit.edu:/pub/gnu
 and from other GNU software mirror sites.  The current version is in
-.I bash-1.13.5.tar.gz
+.I bash-1.14.1.tar.gz
 in that directory.  Use
 .I archie
 to find the nearest archive site.  The
@@ -1056,13 +1084,13 @@ for more information.
 Bash is also distributed with several versions of \s-1UNIX\s+1-compatible
 systems.  It is included as /bin/sh and /bin/bash on several Linux
 distributions (more about the difference in a moment), and as contributed
-software in BSDI's BSD/386\(dg and FreeBSD.
+software in BSDI's BSD/386* and FreeBSD.
 .FS
-\(dg BSD/386 is a trademark of Berkeley Software Design, Inc.
+*BSD/386 is a trademark of Berkeley Software Design, Inc.
 .FE
 .PP
 The Linux distribution deserves special mention.  There are two
-Bash configurations included in the standard distribution: a
+configurations included in the standard Bash distribution: a
 \*Qnormal\*U configuration, in which all of the standard features
 are included, and a \*Qminimal\*U configuration, which omits job
 control, aliases, history and command line editing, the directory

@@ -79,7 +79,6 @@ extern char *get_string_value __P((char *));
 
 extern int assignment __P((char *));
 extern int variable_in_context __P((SHELL_VAR *));
-extern int qsort_string_compare __P((char **, char **));
 extern int assign_in_env __P((char *));
 extern int unbind_variable __P((char *));
 extern int makunbound __P((char *, HASH_TABLE *));

@@ -44,7 +44,7 @@ extern void bash_brace_completion ();
 #endif /* BRACE_COMPLETION */
 
 /* Functions bound to keys in Readline for Bash users. */
-static void shell_expand_line (), insert_last_arg ();
+static void shell_expand_line ();
 static void display_shell_version (), operate_and_get_next ();
 static void history_expand_line (), bash_ignore_filenames ();
 
@@ -57,6 +57,7 @@ static char **attempt_shell_completion ();
 static char *variable_completion_function ();
 static char *hostname_completion_function ();
 static char *command_word_completion_function ();
+static char *command_subst_completion_function ();
 
 static void snarf_hosts_from_file (), add_host_name ();
 static void sort_hostname_list ();
@@ -72,6 +73,7 @@ extern int rl_explicit_arg;
 extern char *current_prompt_string, *ps1_prompt;
 extern STRING_INT_ALIST word_token_alist[];
 extern Function *rl_last_func;
+extern int rl_filename_completion_desired;
 
 /* SPECIFIC_COMPLETION_FUNCTIONS specifies that we have individual
    completion functions which indicate what type of completion should be
@@ -130,7 +132,8 @@ initialize_readline ()
     return;
 
   rl_terminal_name = get_string_value ("TERM");
-  rl_instream = stdin, rl_outstream = stderr;
+  rl_instream = stdin;
+  rl_outstream = stderr;
   rl_special_prefixes = "$@";
 
   /* Allow conditional parsing of the ~/.inputrc file. */
@@ -145,9 +148,8 @@ initialize_readline ()
   rl_add_defun ("history-expand-line", (Function *)history_expand_line, -1);
   rl_bind_key_in_map ('^', (Function *)history_expand_line, emacs_meta_keymap);
 
-  rl_add_defun ("insert-last-argument", (Function *)insert_last_arg, -1);
-  rl_bind_key_in_map ('.', (Function *)insert_last_arg, emacs_meta_keymap);
-  rl_bind_key_in_map ('_', (Function *)insert_last_arg, emacs_meta_keymap);
+  /* Backwards compatibility. */
+  rl_add_defun ("insert-last-argument", rl_yank_last_arg, -1);
 
   rl_add_defun
     ("operate-and-get-next", (Function *)operate_and_get_next, CTRL('O'));
@@ -502,22 +504,6 @@ hostnames_matching (text)
   return ((char **)NULL);
 }
 
-/* This is a K*rn shell style insert-last-arg function.  The
-   difference is that Bash puts stuff into the history file before
-   expansion and file name generation, so we deal with exactly what the
-   user typed.  Those wanting the other behavior, at least for the last
-   arg, can use `$_'.  This also `knows' about how rl_yank_nth_arg treats
-   `$'. */
-static void
-insert_last_arg (count, c)
-     int count, c;
-{
-  if (rl_explicit_arg)
-    rl_yank_nth_arg (count, c);
-  else
-    rl_yank_nth_arg ('$', c);
-}
-
 /* The equivalent of the K*rn shell C-o operate-and-get-next-history-line
    editing command. */
 static int saved_history_line_to_use = 0;
@@ -543,7 +529,7 @@ operate_and_get_next (count, c)
   /* Find the current line, and find the next line to use. */
   where = where_history ();
 
-  if ((history_stifled && (history_length >= max_input_history)) ||
+  if ((history_is_stifled () && (history_length >= max_input_history)) ||
       (where >= history_length - 1))
     saved_history_line_to_use = where;
   else
@@ -570,7 +556,7 @@ vi_edit_and_execute_command (count, c)
 
   if (rl_explicit_arg)
     {
-      command = (char *)xmalloc (strlen (VI_EDIT_COMMAND) + 8);
+      command = xmalloc (strlen (VI_EDIT_COMMAND) + 8);
       sprintf (command, "%s %d", VI_EDIT_COMMAND, count);
     }
   else
@@ -605,7 +591,7 @@ attempt_shell_completion (text, start, end)
 {
   int in_command_position, ti;
   char **matches = (char **)NULL;
-  char *command_separator_chars = ";|&{(";
+  char *command_separator_chars = ";|&{(`";
 
   rl_ignore_some_completions_function =
     (Function *)filename_completion_ignore;
@@ -623,7 +609,7 @@ attempt_shell_completion (text, start, end)
   if (ti < 0)
     {
       /* Only do command completion at the start of a line when we
-         are not prompting at top level. */
+         are prompting at the top level. */
       if (current_prompt_string == ps1_prompt)
 	in_command_position++;
     }
@@ -651,8 +637,13 @@ attempt_shell_completion (text, start, end)
 	 assignments. */
     }
 
+  /* Special handling for command substitution.  XXX - this should handle
+     `$(' as well. */
+  if (*text == '`' && unclosed_pair (rl_line_buffer, start, "`"))
+    matches = completion_matches (text, command_subst_completion_function);
+
   /* Variable name? */
-  if (*text == '$')
+  if (!matches && *text == '$')
     matches = completion_matches (text, variable_completion_function);
 
   /* If the word starts in `~', and there is no slash in the word, then
@@ -711,9 +702,6 @@ command_word_completion_function (hint_text, state)
       if (hint)
 	free (hint);
 
-      hint = savestring (hint_text);
-      hint_len = strlen (hint);
-
       mapping_over = 0;
       val = (char *)NULL;
 
@@ -723,13 +711,25 @@ command_word_completion_function (hint_text, state)
 	 is executable. */
       if (absolute_program (hint_text))
 	{
+	  /* Perform tilde expansion on what's passed, so we don't end up
+	     passing filenames with tildes directly to stat(). */
+	  if (*hint_text == '~')
+	    hint = tilde_expand (hint_text);
+	  else
+	    hint = savestring (hint_text);
+	  hint_len = strlen (hint);
+
 	  if (filename_hint)
 	    free (filename_hint);
-	  filename_hint = savestring (hint_text);
+	  filename_hint = savestring (hint);
+
 	  mapping_over = 4;
 	  istate = 0;
 	  goto inner;
 	}
+
+      hint = savestring (hint_text);
+      hint_len = strlen (hint);
 
       path = get_string_value ("PATH");
       path_index = 0;
@@ -818,7 +818,7 @@ command_word_completion_function (hint_text, state)
       mapping_over++;
     }
 
-  /* Repeatedly call filename_completion_function while we have
+  /* Repeatedly call filename_completion_func<tion while we have
      members of PATH left.  Question:  should we stat each file?
      Answer: we call executable_file () on each file. */
  outer:
@@ -831,12 +831,11 @@ command_word_completion_function (hint_text, state)
 
       /* Get the next directory from the path.  If there is none, then we
 	 are all done. */
-      if (!path ||
-	  !path[path_index] ||
-	  !(current_path = extract_colon_unit (path, &path_index)))
+      if (!path || !path[path_index] ||
+	  (current_path = extract_colon_unit (path, &path_index)) == 0)
 	return ((char *)NULL);
 
-      if (!*current_path)
+      if (*current_path == 0)
 	{
 	  free (current_path);
 	  current_path = savestring (".");
@@ -854,7 +853,7 @@ command_word_completion_function (hint_text, state)
       if (filename_hint)
 	free (filename_hint);
 
-      filename_hint = xmalloc (2 + strlen (current_path) + strlen (hint));
+      filename_hint = xmalloc (2 + strlen (current_path) + hint_len);
       sprintf (filename_hint, "%s/%s", current_path, hint);
 
       free (current_path);
@@ -881,16 +880,31 @@ command_word_completion_function (hint_text, state)
       if (absolute_program (hint))
 	{
 	  match = strncmp (val, hint, hint_len) == 0;
-	  temp = val;
+	  /* If we performed tilde expansion, restore the original
+	     filename. */
+	  if (*hint_text == '~')
+	    {
+	      int l, tl, vl;
+	      vl = strlen (val);
+	      tl = strlen (hint_text);
+	      l = vl - hint_len;	/* # of chars added */
+	      temp = xmalloc (l + 2 + tl);
+	      strcpy (temp, hint_text);
+	      strcpy (temp + tl, val + vl - l);
+	    }
+	  else
+	    temp = savestring (val);
 	}
       else
 	{
-	  temp = (char *)strrchr (val, '/');
+	  temp = strrchr (val, '/');
 
 	  if (temp)
 	    {
 	      temp++;
 	      match = strncmp (temp, hint, hint_len) == 0;
+	      if (match)
+		temp = savestring (temp);
 	    }
 	  else
 	    match = 0;
@@ -899,7 +913,6 @@ command_word_completion_function (hint_text, state)
       /* If we have found a match, and it is an executable file, return it. */
       if (match && executable_file (val))
 	{
-	  temp = savestring (temp);
 	  free (val);
 	  val = "";		/* So it won't be NULL. */
 	  return (temp);
@@ -909,6 +922,55 @@ command_word_completion_function (hint_text, state)
 	  free (val);
 	  goto inner;
 	}
+    }
+}
+
+static char *
+command_subst_completion_function (text, state)
+     int state;
+     char *text;
+{
+  char **matches = (char **)NULL;
+  static char *orig_start, *filename_text = (char *)NULL;
+  static int cmd_index, start_len;
+
+  if (state == 0)
+    {
+      if (filename_text)
+	free (filename_text);
+      orig_start = text;
+      if (*text == '`')
+        text++;
+      else if (*text == '$' && text[1] == '(')
+        text += 2;
+      start_len = text - orig_start;
+      filename_text = savestring (text);
+      if (matches)
+	free (matches);
+      matches = completion_matches (filename_text, command_word_completion_function);
+      cmd_index = 0;
+    }
+
+  if (!matches || !matches[cmd_index])
+    {
+      rl_filename_quoting_desired = 0;	/* disable quoting */
+      return ((char *)NULL);
+    }
+  else
+    {
+      char *value;
+
+      value = xmalloc (1 + start_len + strlen (matches[cmd_index]));
+
+      if (start_len == 1)
+        value[0] = *orig_start;
+      else
+        strncpy (value, orig_start, start_len);
+
+      strcpy (value + start_len, matches[cmd_index]);
+
+      cmd_index++;
+      return (value);
     }
 }
 
@@ -936,7 +998,7 @@ variable_completion_function (text, state)
       if (first_char == '$')
 	first_char_loc++;
 
-      varname = savestring (&text[first_char_loc]);
+      varname = savestring (text + first_char_loc);
 
       namelen = strlen (varname);
       if (varlist)
@@ -962,7 +1024,7 @@ variable_completion_function (text, state)
     }
   else
     {
-      char *value = (char *)xmalloc (2 + strlen (var->name));
+      char *value = xmalloc (2 + strlen (var->name));
 
       if (first_char_loc)
 	*value = first_char;
@@ -1004,7 +1066,7 @@ hostname_completion_function (text, state)
 
   if (list && list[list_index])
     {
-      char *t = (char *)xmalloc (2 + strlen (list[list_index]));
+      char *t = xmalloc (2 + strlen (list[list_index]));
 
       *t = first_char;
       strcpy (t + first_char_loc, list[list_index]);
@@ -1634,7 +1696,6 @@ bash_possible_variable_completions (ignore, ignore2)
 {
   bash_complete_variable_internal ('?');
 }
-
 
 static void
 bash_complete_command (ignore, ignore2)

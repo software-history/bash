@@ -17,6 +17,9 @@ MAKEINFO    = makeinfo
 # Change to groff -Tascii if you don't have nroff
 NROFF	    = nroff
 
+# This should be a program that converts troff to postscript
+GROFF	    = groff
+
 HSUSER      = ./../lib/readline/doc/hsuser.texinfo
 RLUSER      = ./../lib/readline/doc/rluser.texinfo
 
@@ -24,21 +27,24 @@ RLUSER      = ./../lib/readline/doc/rluser.texinfo
 
 .1.ps:
 	$(RM) $@
-	groff -man $< > $@
+	${GROFF} -man $< > $@
+
 .1.txt:
 	$(RM) $@
 	${NROFF} -man $< > $@
 
 .ms.ps:
 	$(RM) $@
-	groff -ms $< > $@
+	${GROFF} -ms $< > $@
+
 .ms.txt:
 	$(RM) $@
 	${NROFF} -ms $< > $@
 
 .3.ps:
 	$(RM) $@
-	groff -man $< > $@
+	${GROFF} -man $< > $@
+
 .3.txt:
 	$(RM) $@
 	${NROFF} -man $< > $@

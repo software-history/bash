@@ -64,7 +64,12 @@ really_munge_braces (array, real_start, real_end, gcd_zero)
   flag = 0;
 
   if (real_start == real_end)
-    return (savestring (array[real_start] + gcd_zero));
+    {
+      if (array[real_start])
+        return (savestring (array[real_start] + gcd_zero));
+      else
+        return (savestring (array[0]));
+    }
 
   result = (char *) xmalloc (result_size = 1);
   *result = '\0';

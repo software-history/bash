@@ -184,6 +184,7 @@ extern GENERIC_LIST *reverse_list ();
 extern GENERIC_LIST *delete_element ();
 extern GENERIC_LIST *list_append ();
 extern int list_length ();
+extern int qsort_string_compare ();
 
 extern int find_name_in_list __P((char *, char **));
 extern int array_len __P((char **));
