@@ -32,6 +32,7 @@
 #include "filecntl.h"
 #include "jobs.h"
 #include "externs.h"
+#include "error.h"
 
 #if defined (BUFFERED_INPUT)
 #  include "input.h"

@@ -88,8 +88,8 @@ initialize_traps ()
 
   /* Show which signals are treated specially by the shell. */
 #if defined (SIGCHLD)
-  original_signals[SIGCHLD] = (SigHandler *) signal (SIGCHLD, SIG_DFL);
-  signal (SIGCHLD, original_signals[SIGCHLD]);
+  original_signals[SIGCHLD] = (SigHandler *) set_signal_handler (SIGCHLD, SIG_DFL);
+  set_signal_handler (SIGCHLD, original_signals[SIGCHLD]);
   sigmodes[SIGCHLD] |= (SIG_SPECIAL | SIG_NO_TRAP);
 #endif /* SIGCHLD */
 
@@ -105,8 +105,8 @@ initialize_traps ()
 
   if (interactive)
     {
-      original_signals[SIGTERM] = (SigHandler *)signal (SIGTERM, SIG_DFL);
-      signal (SIGTERM, original_signals[SIGTERM]);
+      original_signals[SIGTERM] = (SigHandler *)set_signal_handler (SIGTERM, SIG_DFL);
+      set_signal_handler (SIGTERM, original_signals[SIGTERM]);
       sigmodes[SIGTERM] |= SIG_SPECIAL;
     }
 }
@@ -223,7 +223,7 @@ trap_handler (sig)
   else
     {
 #if defined (USG) && !defined (HAVE_BSD_SIGNALS) && !defined (_POSIX_VERSION)
-      signal (sig, trap_handler);
+      set_signal_handler (sig, trap_handler);
 #endif /* USG && !HAVE_BSD_SIGNALS && !_POSIX_VERSION */
 
       catch_flag = 1;
@@ -311,7 +311,7 @@ set_signal (sig, string)
       /* If we aren't sure of the original value, check it. */
       if (original_signals[sig] == IMPOSSIBLE_TRAP_HANDLER)
 	{
-	  original_signals[sig] = (SigHandler *)signal (sig, SIG_DFL);
+	  original_signals[sig] = (SigHandler *)set_signal_handler (sig, SIG_DFL);
 	  set_signal_handler (sig, original_signals[sig]);
 	}
 
@@ -380,7 +380,7 @@ get_original_signal (sig)
     {
       original_signals[sig] =
 	(SigHandler *) set_signal_handler (sig, SIG_DFL);
-      signal (sig, original_signals[sig]);
+      set_signal_handler (sig, original_signals[sig]);
 
       /* Signals ignored on entry to the shell cannot be trapped. */
       if (original_signals[sig] == SIG_IGN)
@@ -445,7 +445,7 @@ ignore_signal (sig)
 
   /* Only change the signal handler for SIG if it allows it. */
   if (!(sigmodes[sig] & SIG_NO_TRAP))
-    signal (sig, SIG_IGN);
+    set_signal_handler (sig, SIG_IGN);
 
   /* Change the trap command in either case. */
   change_signal (sig, (char *)IGNORE_SIG);
@@ -497,11 +497,7 @@ free_trap_strings ()
 
   for (i = 0; i < NSIG; i++)
     {
-      if ((sigmodes[i] & SIG_TRAPPED) && trap_list[i] &&
-	  (trap_list[i] != (char *)IGNORE_SIG) &&
-	  (trap_list[i] != (char *)DEFAULT_SIG) &&
-	  (trap_list[i] != (char *)IMPOSSIBLE_TRAP_HANDLER))
-	free (trap_list[i]);
+      free_trap_command (i);
       trap_list[i] = (char *)DEFAULT_SIG;
       sigmodes[i] &= ~SIG_TRAPPED;
     }
@@ -512,7 +508,7 @@ static void
 reset_signal (sig)
      int sig;
 {
-  signal (sig, original_signals[sig]);
+  set_signal_handler (sig, original_signals[sig]);
 }
 
 /* Reset the handlers for all trapped signals to the values they had when
@@ -522,6 +518,13 @@ reset_signal_handlers ()
 {
   register int i;
 
+  if (sigmodes[0] & SIG_TRAPPED)
+    {
+      free_trap_command (0);
+      trap_list[0] = (char *)NULL;
+      sigmodes[0] &= ~SIG_TRAPPED;
+    }
+
   for (i = 1; i < NSIG; i++)
     {
       if (sigmodes[i] & SIG_SPECIAL)
@@ -529,7 +532,7 @@ reset_signal_handlers ()
       else if (sigmodes[i] & SIG_TRAPPED)
 	{
 	  if (trap_list[i] == (char *)IGNORE_SIG)
-	    signal (i, SIG_IGN);
+	    set_signal_handler (i, SIG_IGN);
 	  else
 	    reset_signal (i);
 	}
@@ -545,6 +548,14 @@ restore_original_signals ()
   register int i;
 
   reset_terminating_signals ();		/* in shell.c */
+
+  if (sigmodes[0] & SIG_TRAPPED)
+    {
+      free_trap_command (0);
+      trap_list[0] = (char *)NULL;
+      sigmodes[0] &= ~SIG_TRAPPED;
+    }
+
   for (i = 1; i < NSIG; i++)
     {
       if (sigmodes[i] & SIG_SPECIAL)
@@ -552,7 +563,7 @@ restore_original_signals ()
       else if (sigmodes[i] & SIG_TRAPPED)
 	{
 	  if (trap_list[i] == (char *)IGNORE_SIG)
-	    signal (i, SIG_IGN);
+	    set_signal_handler (i, SIG_IGN);
 	  else
 	    restore_signal (i);
 	}

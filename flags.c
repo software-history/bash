@@ -107,11 +107,11 @@ int no_invisible_vars = 0;
 /* Non-zero means don't look up or remember command names in a hash table, */
 int hashing_disabled = 0;
 
-#if defined (HISTORY)
+#if defined (BANG_HISTORY)
 /* Non-zero means that we are doing history expansion.  The default.
    This means !22 gets the 22nd line of history. */
 int history_expansion = 1;
-#endif /* HISTORY */
+#endif /* BANG_HISTORY */
 
 /* Non-zero means that we allow comments to appear in interactive commands. */
 #if defined (INTERACTIVE_COMMENTS)
@@ -173,10 +173,10 @@ struct flags_alist shell_flags[] = {
 
   { 'P', &no_symbolic_links },
 
-#if defined (HISTORY)
+#if defined (BANG_HISTORY)
   /* Once again, we don't have the right mnemonic. */
   { 'H', &history_expansion },
-#endif /* HISTORY */
+#endif /* BANG_HISTORY */
 
   {0, (int *)NULL}
 };

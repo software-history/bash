@@ -150,7 +150,7 @@ maybe_save_shell_history ()
 {
   int result = 0;
 
-  if (interactive && history_lines_this_session)
+  if (history_lines_this_session)
     {
       char *hf = get_string_value ("HISTFILE");
 

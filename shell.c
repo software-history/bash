@@ -92,7 +92,7 @@ static int sourced_env = 0;
 /* The current maintainer of the shell.  You change this in the
    Makefile. */
 #if !defined (MAINTAINER)
-#define MAINTAINER "deliberately-anonymous"
+#define MAINTAINER "bash-maintainers@prep.ai.mit.edu"
 #endif
 
 char *the_current_maintainer = MAINTAINER;
@@ -495,7 +495,10 @@ main (argc, argv, env)
   else
     {
 #if defined (HISTORY)
-      history_expansion = remember_on_history = 0;
+#  if defined (BANG_HISTORY)
+      history_expansion = 0;
+#  endif
+      remember_on_history = 0;
 #endif /* HISTORY */
       interactive_shell = startup_state = interactive = 0;
       no_line_editing = 1;
@@ -722,7 +725,9 @@ main (argc, argv, env)
       if (!interactive_shell || (!isatty (fd)))
 	{
 #if defined (HISTORY)
+#  if defined (BANG_HISTORY)
 	  history_expansion = 0;
+#  endif
 	  remember_on_history = 0;
 #endif /* HISTORY */
 	  interactive = interactive_shell = 0;
@@ -802,7 +807,7 @@ main (argc, argv, env)
 #endif /* PROCESS_SUBSTITUTION */
 
 #if defined (HISTORY)
-  if (interactive && remember_on_history)
+  if (interactive_shell)
     maybe_save_shell_history ();
 #endif /* HISTORY */
 
@@ -1033,8 +1038,9 @@ run_one_command (command)
 	{
 	  /* Some kind of throw to top_level has occured. */
 	case FORCE_EOF:
-	case EXITPROG:
 	  return last_command_exit_value = 127;
+	case EXITPROG:
+	  return last_command_exit_value;
 	case DISCARD:
 	  return last_command_exit_value = 1;
 	default:
@@ -1147,17 +1153,20 @@ char *
 indirection_level_string ()
 {
   register int i, j;
-  char *ps4 = get_string_value ("PS4");
+  char *ps4;
 
-  if (!ps4)
-    ps4 = savestring ("+ ");
-  else
-    ps4 = decode_prompt_string (ps4);
+  indirection_string[0] = '\0';
+  ps4 = get_string_value ("PS4");
 
-  for (i = 0; i < indirection_level && i < 99; i++)
+  if (ps4 == 0 || *ps4 == '\0')
+    return (indirection_string);
+    
+  ps4 = decode_prompt_string (ps4);
+
+  for (i = 0; *ps4 && i < indirection_level && i < 99; i++)
     indirection_string[i] = *ps4;
 
-  for (j = 1; ps4[j] && i < 99; i++, j++)
+  for (j = 1; *ps4 && ps4[j] && i < 99; i++, j++)
     indirection_string[i] = ps4[j];
 
   indirection_string[i] = '\0';
@@ -1353,7 +1362,10 @@ shell_reinitialize ()
   forced_interactive = interactive_shell = subshell_environment = 0;
 
 #if defined (HISTORY)
-  remember_on_history = history_expansion = 0;
+#  if defined (BANG_HISTORY)
+  history_expansion = 0;
+#  endif
+  remember_on_history = 0;
 #endif /* HISTORY */
 
 #if defined (RESTRICTED_SHELL)
@@ -1504,7 +1516,7 @@ termination_unwind_protect (sig)
     run_interrupt_trap ();
 
 #if defined (HISTORY)
-  if (interactive && remember_on_history)
+  if (interactive_shell)
     maybe_save_shell_history ();
 #endif /* HISTORY */
 
@@ -1519,7 +1531,7 @@ termination_unwind_protect (sig)
 #endif /* PROCESS_SUBSTITUTION */
 
   run_exit_trap ();
-  signal (sig, SIG_DFL);
+  set_signal_handler (sig, SIG_DFL);
   kill (getpid (), sig);
 
 #if !defined (VOID_SIGHANDLER)
@@ -1565,12 +1577,12 @@ initialize_terminating_signals ()
   for (i = 0; i < TERMSIGS_LENGTH; i++)
     {
       terminating_signals[i].orig_handler =
-	signal (XSIG (i), termination_unwind_protect);
+	set_signal_handler (XSIG (i), termination_unwind_protect);
       /* Don't do anything with signals that are ignored at shell entry
 	 if the shell is not interactive. */
       if (!interactive_shell && terminating_signals[i].orig_handler == SIG_IGN)
 	{
-          signal (XSIG (i), SIG_IGN);
+          set_signal_handler (XSIG (i), SIG_IGN);
           set_signal_ignored (XSIG (i));
 	}
     }
@@ -1586,12 +1598,12 @@ initialize_terminating_signals ()
 #endif /* JOB_CONTROL || _POSIX_VERSION */
 
   /* And, some signals that are specifically ignored by the shell. */
-  signal (SIGQUIT, SIG_IGN);
+  set_signal_handler (SIGQUIT, SIG_IGN);
 
   if (interactive)
     {
       set_signal_handler (SIGINT, sigint_sighandler);
-      signal (SIGTERM, SIG_IGN);
+      set_signal_handler (SIGTERM, SIG_IGN);
     }
 }
 
@@ -1621,7 +1633,7 @@ reset_terminating_signals ()
       if (signal_is_trapped (XSIG (i)) || signal_is_special (XSIG (i)))
 	continue;
 
-      signal (XSIG (i), XHANDLER (i));
+      set_signal_handler (XSIG (i), XHANDLER (i));
     }
 #endif
 }
@@ -1699,7 +1711,7 @@ sigint_sighandler (sig)
      int sig;
 {
 #if defined (USG) && !defined (_POSIX_VERSION)
-  signal (sig, sigint_sighandler);
+  set_signal_handler (sig, sigint_sighandler);
 #endif
 
   /* interrupt_state needs to be set for the stack of interrupts to work

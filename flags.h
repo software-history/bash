@@ -47,9 +47,9 @@ extern int
   hashing_disabled, forced_interactive, privileged_mode,
   asynchronous_notification, interactive_comments, no_symbolic_links;
 
-#if defined (HISTORY)
+#if defined (BANG_HISTORY)
 extern int history_expansion;
-#endif /* HISTORY */
+#endif /* BANG_HISTORY */
 
 #if defined (RESTRICTED_SHELL)
 extern int restricted;

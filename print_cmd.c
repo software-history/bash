@@ -662,7 +662,7 @@ cprintf (format, arg1, arg2)
   char char_arg[2], *argp, *args[2];
   int arg_len, c, arg_index;
 
-  args[0] = arg1;
+  args[arg_index = 0] = arg1;
   args[1] = arg2;
 
   arg_len = strlen (format);

@@ -57,6 +57,7 @@ extern int time_to_check_mail __P((void));
 extern void reset_mail_timer __P((void));
 extern void reset_mail_files __P((void));
 extern void free_mail_files __P((void));
+extern char *make_default_mailpath __P((void));
 extern void remember_mail_dates __P((void));
 extern void check_mail __P((void));
 

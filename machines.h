@@ -280,6 +280,13 @@
 #      define MACHINE_CFLAGS -Wf,-XNl3072
 #    endif
 #  endif /* Irix5 */
+#  if defined (Irix6)
+#    define M_OS "Irix6"
+#    if !defined (HAVE_GCC)
+#      undef MACHINE_CFLAGS
+#      define MACHINE_CFLAGS -mips2
+#    endif /* !HAVE_GCC */
+#  endif /* Irix6 */
 #  define M_MACHINE "sgi"
 #  define HAVE_GETGROUPS
 #  define VOID_SIGHANDLER
@@ -293,7 +300,7 @@
 #  else
 #    define ANSIC
 #  endif /* !__EXTENSIONS__ || __STDC__ */
-#  if defined (Irix5)
+#  if defined (Irix5) || defined (Irix6)
 #    define SGI_CFLAGS -DUSG -DPGRP_PIPE -DHAVE_BCOPY -DHAVE_GETPW_DECLS \
 		       -DHAVE_SOCKETS -DNO_SBRK_DECL
 #  else
@@ -667,7 +674,7 @@
 #      define SYSDEP_LDFLAGS -Xp
 #      define ISC_POSIX -Xp
 #    endif
-#    define ISC_SYSDEPS -DUSGr3 -DPGRP_PIPE -DHAVE_GETPW_DECLS -D_POSIX_SOURCE -DOPENDIR_NOT_ROBUST -DMEMMOVE_MISSING
+#    define ISC_SYSDEPS -DUSGr3 -DPGRP_PIPE -DHAVE_GETPW_DECLS -D_POSIX_SOURCE -DOPENDIR_NOT_ROBUST -DMEMMOVE_MISSING -DWAITPID_BROKEN
 #    if defined (__STDC__)
 #      if defined (HAVE_GCC)
 #        define ISC_EXTRA -DO_NDELAY=O_NONBLOCK
@@ -725,9 +732,9 @@
 #    define M_OS "SCO"
 #    define SCO_CFLAGS -DUSG -DUSGr3 -DPGRP_PIPE
 #    if defined (SCOv4)
-#      define SYSDEP_CFLAGS SCO_CFLAGS
+#      define SYSDEP_CFLAGS SCO_CFLAGS -DWAITPID_BROKEN
 #    else /* !SCOv4 */
-#      define SYSDEP_CFLAGS SCO_CFLAGS -DOPENDIR_NOT_ROBUST
+#      define SYSDEP_CFLAGS SCO_CFLAGS -DOPENDIR_NOT_ROBUST -DMUST_UNBLOCK_CHILD
 #    endif /* !SCOv4 */
 #    define HAVE_VFPRINTF
 #    define VOID_SIGHANDLER
@@ -758,12 +765,17 @@
 #    define REQUIRED_LIBRARIES -lbsd
 #  endif /* OSF/1 */
 
-/* BSDI BSD/386 running on a 386 or 486. */
+/* BSDI BSD/OS running on a 386 or 486. */
 #  if !defined (done386) && defined (__bsdi__)
 #    define done386
 #    define M_MACHINE "i386"
-#    define M_OS "BSD386"
-#    define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#    if defined (BSDI2)
+#      define M_OS "BSD_OS"
+#      define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DRLIMTYPE=quad_t
+#    else
+#      define M_OS "BSD386"
+#      define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#    endif
 #    define HAVE_SYS_SIGLIST
 #    define HAVE_SETLINEBUF
 #    define HAVE_GETGROUPS
@@ -832,7 +844,7 @@
 #    define done386
 #    define M_MACHINE "i386"
 #    define M_OS "Linux"
-#    define SYSDEP_CFLAGS -DUSG -DUSGr3 -DHAVE_GETDTABLESIZE -DHAVE_BCOPY \
+#    define SYSDEP_CFLAGS -DHAVE_GETDTABLESIZE -DHAVE_BCOPY \
 			  -DHAVE_GETPW_DECLS -DHAVE_GETHOSTNAME
 #    define REQUIRED_LIBRARIES
 #    define HAVE_GETGROUPS
@@ -944,7 +956,7 @@
 #if defined (m68k) && defined (sysV68)
 #  define M_MACHINE "Delta"
 #  define M_OS "USG"
-#  define SYSDEP_CFLAGS -DUSGr3
+#  define SYSDEP_CFLAGS -DUSGr3 -DMEMMOVE_MISSING
 #  define VOID_SIGHANDLER
 #  define HAVE_VFPRINTF
 #  define REQUIRED_LIBRARIES -lm881
@@ -1799,7 +1811,7 @@ MAKE = make
 #  if defined (USGr4)
 #    define SYSDEP_CFLAGS -DUSGr4 -D_POSIX_JOB_CONTROL
 #  else
-#    define SYSDEP_CFLAGS -D_POSIX_JOB_CONTROL
+#    define SYSDEP_CFLAGS -D_POSIX_JOB_CONTROL -DWAITPID_BROKEN
 #  endif
 #  define HAVE_DIRENT
 #  define HAVE_VFPRINTF
@@ -2020,6 +2032,56 @@ MAKE = make
 #  endif /* !HAVE_GCC */
 #  undef HAVE_GETWD
 #endif /* Tandem running SVR3 */
+
+/* ****************** */ 
+/*                    */
+/*     Amdahl UTS     */
+/*                    */
+/* ****************** */
+
+#if defined (UTS)
+#  define M_MACHINE "uts"
+#  define M_OS "systemV"
+#  define SYSDEP_CFLAGS -DUSG -DMEMMOVE_MISSING
+#  define REQUIRED_LIBRARIES  
+#  undef HAVE_SYS_SIGLIST
+#  undef HAVE_GETWD
+#  undef HAVE_ALLOCA 
+#  define HAVE_VFPRINTF
+#  define HAVE_DIRENT  
+#  undef HAVE_RESOURCE   
+#endif  /* UTS */
+
+/* ************************ */
+/*                          */
+/* Stratus i860 running FTX (jonathan@sybase.com (Jonathan Stockley)) */
+/*                          */
+/* ************************ */
+/* Use 'make CPP_DEFINES=-D_FTX' to build as /usr/ccs/lib/cpp doesn't set
+   anything other than i860 which may be set on other i860 machines.
+   The C compiler, cc, sets _FTX & i860 but, unfortunately it barfs at stuff
+   in cpp-Makefile that has a # in it (it has it's own builtin cpp).
+*/
+#if defined(_FTX) && defined (i860) && !defined (M_MACHINE)
+#define M_MACHINE "Stratus_i860"
+#define M_OS "FTX"
+#define VOID_SIGHANDLER
+#define HAVE_POSIX_SIGNALS
+#define HAVE_VFPRINTF
+#define HAVE_SETVBUF
+#define REVERSED_SETVBUF_ARGS
+#define HAVE_STRCHR
+#define HAVE_STRERROR
+#define HAVE_GETGROUPS
+#define HAVE_DUP2
+#undef HAVE_ALLOCA
+#undef HAVE_GETWD
+#define HAVE_GETCWD
+#define HAVE_SYS_SIGLIST
+#define SYSDEP_CFLAGS  -DHAVE_UID_T -Dsys_siglist=_sys_siglist  -DUSGr4
+#define EXTRA_LIB_SEARCH_PATH /usr/ucblib
+#define REQUIRED_LIBRARIES -lc -lucb
+#endif /* _FTX */
 
 /* ************************ */
 /*			    */

@@ -229,13 +229,16 @@ file_has_grown (file)
   return ((stat (file, &finfo) == 0) && (finfo.st_size > size));
 }
 
-#if defined (USG)
-#  define DEFAULT_MAIL_PATH "/usr/mail/"
-#  define DEFAULT_PATH_LEN 10
-#else
-#  define DEFAULT_MAIL_PATH "/usr/spool/mail/"
-#  define DEFAULT_PATH_LEN 16
-#endif
+char *
+make_default_mailpath ()
+{
+  char *mp;
+
+  mp = xmalloc (1 + sizeof (DEFAULT_MAIL_PATH) + strlen (current_user.user_name));
+  strcpy (mp, DEFAULT_MAIL_PATH);
+  strcpy (mp + sizeof (DEFAULT_MAIL_PATH) - 1, current_user.user_name);
+  return (mp);
+}
 
 /* Return the colon separated list of pathnames to check for mail. */
 static char *
@@ -251,10 +254,7 @@ get_mailpaths ()
   if (mailpaths)
     return (savestring (mailpaths));
     
-  mailpaths = xmalloc (1 + DEFAULT_PATH_LEN + strlen (current_user.user_name));
-  strcpy (mailpaths, DEFAULT_MAIL_PATH);
-  strcpy (mailpaths + DEFAULT_PATH_LEN, current_user.user_name);
-  return (mailpaths);
+  return (make_default_mailpath ());
 }
 
 /* Take an element from $MAILPATH and return the portion from
@@ -291,10 +291,11 @@ parse_mailpath_spec (str)
 void
 remember_mail_dates ()
 {
-  char *mailpaths = get_mailpaths ();
+  char *mailpaths;
   char *mailfile, *mp;
   int i = 0;
-  
+
+  mailpaths = get_mailpaths ();  
   while (mailfile = extract_colon_unit (mailpaths, &i))
     {
       mp = parse_mailpath_spec (mailfile);

@@ -92,14 +92,31 @@
 #  define HISTORY
 #endif /* BANG_HISTORY && !HISTORY */
 
+#if defined (READLINE) && !defined (HISTORY)
+#  define HISTORY
+#endif
+
 /* The default value of the PATH variable. */
 #define DEFAULT_PATH_VALUE \
-  ":/usr/gnu/bin:/usr/local/bin:/usr/ucb:/bin:/usr/bin:/etc:/usr/etc"
+  "/usr/gnu/bin:/usr/local/bin:/usr/ucb:/bin:/usr/bin:."
 
 /* The value for PATH when invoking `command -p'.  This is only used when
    the Posix.2 confstr () function, or CS_PATH define are not present. */
 #define STANDARD_UTILS_PATH \
-  "/bin:/usr/bin:/usr/ucb:/usr/sbin:/etc:/usr/etc"
+  "/bin:/usr/bin:/usr/ucb:/usr/sbin:/sbin:/etc:/usr/etc:/usr/lib"
+
+/* Put system-specific default mail directories here. */
+#if defined (__bsdi__) || defined (__FreeBSD__) || defined (__NetBSD__)
+#  define DEFAULT_MAIL_PATH "/var/mail/"
+#endif
+
+#if !defined (DEFAULT_MAIL_PATH)
+#if defined (USG)
+#  define DEFAULT_MAIL_PATH "/usr/mail/"
+#else
+#  define DEFAULT_MAIL_PATH "/usr/spool/mail/"
+#endif
+#endif
 
 /* Define V9_ECHO if you want to give the echo builtin backslash-escape
    interpretation using the -e option, in the style of the Bell Labs 9th

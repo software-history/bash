@@ -89,12 +89,6 @@ int array_needs_making = 1;
 /* The list of variables that may not be unset in this shell. */
 char **non_unsettable_vars = (char **)NULL;
 
-#if defined (USG)
-#define DEFAULT_MAIL_PATH "/usr/mail/"
-#else
-#define DEFAULT_MAIL_PATH "/usr/spool/mail/"
-#endif
-
 static char *have_local_variables;		/* XXX */
 static int local_variable_stack_size = 0;	/* XXX */
 
@@ -209,6 +203,7 @@ initialize_shell_variables (env)
       set_if_not ("PS1", primary_prompt);
       set_if_not ("PS2", secondary_prompt);
     }
+  set_if_not ("PS4", "+ ");
 
 #if defined (INSECURITY)
   set_if_not ("IFS", " \t\n");
@@ -222,25 +217,9 @@ initialize_shell_variables (env)
   temp_var = set_if_not ("OSTYPE", OSTYPE);
   set_auto_export (temp_var);
 
-  /* Default MAILPATH, and MAILCHECK for interactive shells. */
+  /* Default MAILCHECK for interactive shells. */
   if (interactive_shell)
-    {
-      set_if_not ("MAILCHECK", "60");
-
-      if ((get_string_value ("MAIL") == (char *)NULL) &&
-	  (get_string_value ("MAILPATH") == (char *)NULL))
-	{
-	  char *tem;
-
-	  tem = xmalloc (1 + sizeof (DEFAULT_MAIL_PATH)
-			   + strlen (current_user.user_name));
-	  strcpy (tem, DEFAULT_MAIL_PATH);
-	  strcat (tem, current_user.user_name);
-
-	  bind_variable ("MAILPATH", tem);
-	  free (tem);
-	}
-    }
+    set_if_not ("MAILCHECK", "60");
 
   /* Do some things with shell level. */
   temp_var = set_if_not ("SHLVL", "0");
@@ -326,7 +305,6 @@ initialize_shell_variables (env)
 
     /* Make a variable called BASH, which is the name of THIS shell. */
     temp_var = bind_variable ("BASH", name);
-    temp_var->attributes |= att_exported;
 
     free (name);
   }

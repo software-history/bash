@@ -23,6 +23,17 @@
 
 #include "stdc.h"
 
+/* just to make sure */
+#if defined (HAVE_UNISTD_H)
+#  ifdef CRAY
+#    define word __word
+#  endif
+#  include <unistd.h>
+#  ifdef CRAY
+#    undef word
+#  endif
+#endif
+
 #if !defined (NULL)
 #  if defined (__STDC__)
 #    define NULL ((void *) 0)

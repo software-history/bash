@@ -28,9 +28,10 @@
 #endif /* Solaris || USGr4_2 || drs6000 || amiga || Minix */
 
 #if !defined (Solaris) && !defined (Linux) && !defined (__BSD_4_4__) && \
-	!defined (Minix) && !defined (NetBSD) && !defined (FreeBSD)
+	!defined (Minix) && !defined (NetBSD) && !defined (FreeBSD) && \
+	!defined (BSD_OS)
 extern char *sys_siglist[];
-#endif /* !Solaris && !Linux && !__BSD_4_4__ && !Minix && !NetBSD && !FreeBSD */
+#endif /* !Solaris && !Linux && !__BSD_4_4__ && !Minix && !NetBSD && !FreeBSD && !BSD_OS */
 
 #if !defined (strsignal) && !defined (Solaris) && !defined (NetBSD)
 #  define strsignal(sig) (char *)sys_siglist[sig]

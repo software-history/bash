@@ -3238,7 +3238,7 @@ file_status (name)
   /* We have to use access(2) to determine access because AFS does not
      support Unix file system semantics.  This may produce wrong
      answers for non-AFS files when ruid != euid.  I hate AFS. */
-  if (access (name, X_OK))
+  if (access (name, X_OK) == 0)
     return (FS_EXISTS | FS_EXECABLE);
   else
     return (FS_EXISTS);

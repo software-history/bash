@@ -643,7 +643,7 @@ canonicalize_pathname (path)
 	  if (result[i + 1] == '/')
 	    {
 	      strcpy (result + i, result + i + 1);
-	      i = start;
+	      i = (start < 0) ? 0 : start;
 	      continue;
 	    }
 
@@ -653,7 +653,7 @@ canonicalize_pathname (path)
 	    {
 	      while (--start > -1 && result[start] != '/');
 	      strcpy (result + start + 1, result + i + 2);
-	      i = start;
+	      i = (start < 0) ? 0 : start;
 	      continue;
 	    }
 	}

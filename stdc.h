@@ -45,19 +45,33 @@
 #  endif
 #  define __STRING(x) "x"
 
-#if !defined (const)
-#  if defined (__GNUC__)		/* gcc with -traditional */
+#if defined (__GNUC__)		/* gcc with -traditional */
+#  if !defined (const)
 #    define const  __const
+#  endif
+#  if !defined (inline)
 #    define inline __inline
+#  endif
+#  if !defined (signed)
 #    define signed __signed
+#  endif
+#  if !defined (volatile)
 #    define volatile __volatile
-#  else /* !__GNUC__ */
+#  endif
+#else /* !__GNUC__ */
+#  if !defined (const)
 #    define const
+#  endif
+#  if !defined (inline)
 #    define inline
+#  endif
+#  if !defined (signed)
 #    define signed
+#  endif
+#  if !defined (volatile)
 #    define volatile
-#  endif /* !__GNUC__ */
-#endif /* !const */
+#  endif
+#endif /* !__GNUC__ */
 
 #endif /* !__STDC__ */
 

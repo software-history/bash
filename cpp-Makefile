@@ -312,8 +312,8 @@ SYSTEM_FLAGS = $(LINEBUF) $(VPRINTF) $(UNISTD) $(STDLIB) $(LIMITSH) \
        $(VARARGSH) $(STRCHR) $(STRCASE) $(DEVFD) \
        -D$(Machine) -D$(OS)
 LDFLAGS	= $(NOSHARE) $(SYSDEP_LD) $(EXTRA_LD_PATH) $(PROFILE_FLAGS) $(CFLAGS)
-CCFLAGS	= $(PROFILE_FLAGS) $(CFLAGS) $(SYSTEM_FLAGS) -DSHELL $(ALLOCA_CFLAGS) \
-	  $(MALLOC_CFLAGS)
+CCFLAGS	= $(PROFILE_FLAGS) $(SYSTEM_FLAGS) -DSHELL $(ALLOCA_CFLAGS) \
+	  $(MALLOC_CFLAGS) $(CFLAGS)
 CPPFLAGS= -I. -I$(srcdir) -I$(LIBSRC)
 GCC_LINT_FLAGS = -ansi -Wall -Wshadow -Wpointer-arith -Wcast-qual \
 		 -Wwrite-strings -Werror -Wstrict-prototypes \
@@ -385,11 +385,9 @@ Program = bash
 /**/# The type of machine and OS Bash is being compiled on.
 HOSTTYPE_DECL = -DHOSTTYPE='$(SYSTEM_NAME)' -DOSTYPE='$(OS_NAME)'
 
-MAINTAIN_DEFINE = -DMAINTAINER='"bug-bash@prep.ai.mit.edu"'
-
 /**/# The group of configuration flags.  These are for shell.c
-CFG_FLAGS = -DOS_NAME='$(OS_NAME)' -DProgram=$(Program) \
-	    -DSYSTEM_NAME='$(SYSTEM_NAME)' $(SIGLIST_FLAG) $(MAINTAIN_DEFINE)
+CFG_FLAGS = -DOS_NAME='$(OS_NAME)' -DSYSTEM_NAME='$(SYSTEM_NAME)' \
+	    $(SIGLIST_FLAG)
 
 /* **************************************************************** */
 /*                                                                  */

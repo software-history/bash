@@ -1606,6 +1606,9 @@ execute_prompt_command (command)
 
   bind_variable ("_", last_lastarg);
   FREE (last_lastarg);
+
+  if (token_to_read == '\n')
+    token_to_read = 0;
 }
 
 /* Command to read_token () explaining what we want it to do. */
@@ -2465,14 +2468,19 @@ find_reserved_word (token)
 static void
 reset_readline_prompt ()
 {
-  if (prompt_string_pointer && *prompt_string_pointer)
+  if (prompt_string_pointer)
     {
       char *temp_prompt;
 
-      temp_prompt = decode_prompt_string (*prompt_string_pointer);
+      temp_prompt = *prompt_string_pointer
+			? decode_prompt_string (*prompt_string_pointer)
+			: (char *)NULL;
 
-      if (!temp_prompt)
-	temp_prompt = savestring ("");
+      if (temp_prompt == 0)
+	{
+	  temp_prompt = xmalloc (1);
+	  temp_prompt[0] = '\0';
+	}
 
       FREE (current_readline_prompt);
 
@@ -2529,10 +2537,15 @@ prompt_again ()
   if (!prompt_string_pointer)
     prompt_string_pointer = &ps1_prompt;
 
-  if (*prompt_string_pointer)
-    temp_prompt = decode_prompt_string (*prompt_string_pointer);
-  else
-    temp_prompt = savestring ("");
+  temp_prompt = (*prompt_string_pointer)
+			? decode_prompt_string (*prompt_string_pointer)
+			: (char *)NULL;
+
+  if (temp_prompt == 0)
+    {
+      temp_prompt = xmalloc (1);
+      temp_prompt[0] = '\0';
+    }
 
   current_prompt_string = *prompt_string_pointer;
   prompt_string_pointer = &ps2_prompt;
@@ -2758,6 +2771,7 @@ decode_prompt_string (string)
 	      temp = savestring (geteuid () == 0 ? "#" : "$");
 	      goto add_string;
 
+#if defined (READLINE)
 	    case '[':
 	    case ']':
 	      temp = xmalloc(3);
@@ -2765,6 +2779,7 @@ decode_prompt_string (string)
 	      temp[1] = (c == '[') ? RL_PROMPT_START_IGNORE : RL_PROMPT_END_IGNORE;
 	      temp[2] = '\0';
 	      goto add_string;
+#endif
 
 	    case '\\':
 	      temp = savestring ("\\");

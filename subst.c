@@ -2385,6 +2385,7 @@ parameter_brace_expand_rhs (name, value, c, quoted)
 {
   WORD_LIST *l;
   char *t, *t1, *temp;
+  int i;
 
   if (value[0] == '~' ||
       (strchr (value, '~') && unquoted_substring ("=~", value)))
@@ -2392,7 +2393,15 @@ parameter_brace_expand_rhs (name, value, c, quoted)
   else
     temp = savestring (value);
 
-  l = *temp ? expand_string_internal (temp, 0) : (WORD_LIST *)NULL;
+  /* This is a hack.  A better fix is coming later. */
+  if (*temp == '"')
+    {
+      i = 1;
+      t = string_extract_double_quoted (temp, &i);	/* XXX */
+      free (temp);
+      temp = t;
+    }
+  l = *temp ? expand_string_internal (temp, quoted) : (WORD_LIST *)NULL;
   free (temp);
 
   if (l)
@@ -2429,7 +2438,7 @@ parameter_brace_expand_error (name, value)
   if (value && *value)
     {
       WORD_LIST *l = expand_string (value, 0);
-      char *temp1 =  string_list (l);
+      char *temp1 = string_list (l);
       report_error ("%s: %s", name, temp1 ? temp1 : value);
       FREE (temp1);
       dispose_words (l);
@@ -2671,10 +2680,17 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 	    case '7':
 	    case '8':
 	    case '9':
-	      if (dollar_vars[digit_value (c)])
-		temp = savestring (dollar_vars[digit_value (c)]);
-	      else
-		temp = (char *)NULL;
+	      temp = dollar_vars[digit_value (c)];
+	      if (unbound_vars_is_error && temp == (char *)NULL)
+		{
+		  report_error ("$%c: unbound variable", c);
+		  free (string);
+		  free (istring);
+		  last_command_exit_value = 1;
+		  return (&expand_word_error);
+		}
+	      if (temp)
+		temp = savestring (temp);
 	      goto dollar_add_string;
 
 	      /* $$ -- pid of the invoking shell. */
@@ -2690,6 +2706,7 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 	    add_string:
 	      istring = sub_append_string
 		(temp, istring, &istring_index, &istring_size);
+	      temp = (char *)NULL;
 	      break;
 
 	      /* $# -- number of positional parameters. */
@@ -3451,6 +3468,12 @@ final_exit:
 	      temp_list->word->quoted = quoted;
 	    }
 	}
+      else if (word->assignment)
+	{
+	  temp_list = make_word_list (make_word (istring), (WORD_LIST *)NULL);
+	  temp_list->word->quoted = quoted;
+	  temp_list->word->assignment = assignment (temp_list->word->word);
+	}
       else
 	{
 	  char *ifs_chars = (char *)NULL;
@@ -3502,71 +3525,50 @@ string_quote_removal (string, quoted)
      int quoted;
 {
   char *r, *result_string, *temp, *temp1;
-  int sindex, tindex, c;
+  int sindex, tindex, c, dquote;
 
   /* The result can be no longer than the original string. */
   r = result_string = xmalloc (strlen (string) + 1);
-  sindex = 0;
 
-  for (;;)
+  for (sindex = dquote = 0; c = string[sindex];)
     {
-      c = string[sindex];
-      if (c == '\0')
-	break;
-
       switch (c)
 	{
-	  case '\\':
-	    c = string[++sindex];
-	    if (quoted && !member (c, slashify_in_quotes))
-	      {
-		*r++ = '\\';
-		*r++ = c;
-	      }
-	    else
+	case '\\':
+	  c = string[++sindex];
+	  if ((quoted || dquote) && !member (c, slashify_in_quotes))
+	    *r++ = '\\';
+
+	default:
+	  *r++ = c;
+	  sindex++;
+	  break;
+
+	case '\'':
+	  if (quoted || dquote)
+	    {
 	      *r++ = c;
+	      sindex++;
+	    }
+	  else
+	    {
+	      tindex = ++sindex;
+	      temp = string_extract_single_quoted (string, &tindex);
+	      sindex = tindex;
 
-	    sindex++;
-	    break;
+	      if (temp)
+	        {
+		  strcpy (r, temp);
+		  r += strlen (r);
+		  free (temp);
+		}
+	    }
+	  break;
 
-	  case '"':
-	    tindex = ++sindex;
-	    temp = string_extract_double_quoted (string, &tindex);
-	    sindex = tindex;
-
-	    if (temp)
-	      {
-		strcpy (r, temp);
-		r += strlen (r);
-		free (temp);
-	      }
-	    break;
-
-	  case '\'':
-	    if (quoted)
-	      {
-		*r++ = c;
-		sindex++;
-	      }
-	    else
-	      {
-		tindex = ++sindex;
-		temp = string_extract_single_quoted (string, &tindex);
-		sindex = tindex;
-
-		if (temp)
-		  {
-		    strcpy (r, temp);
-		    r += strlen (r);
-		    free (temp);
-		  }
-	      }
-	    break;
-
-	  default:
-	    *r++ = c;
-	    sindex++;
-	    break;
+	case '"':
+	  dquote = 1 - dquote;
+	  sindex++;
+	  break;
 	}
     }
     *r = '\0';
@@ -4353,8 +4355,11 @@ void sv_terminal (), sv_hostname_completion_file ();
 #endif
 
 #if defined (HISTORY)
-void sv_histsize (), sv_histfilesize (), sv_histchars (),
+void sv_histsize (), sv_histfilesize (),
      sv_history_control (), sv_command_oriented_history ();
+#  if defined (BANG_HISTORY)
+void sv_histchars ();
+#  endif
 #endif /* HISTORY */
 
 #if defined (GETOPTS_BUILTIN)
@@ -4392,7 +4397,9 @@ struct name_and_function {
   { "HISTSIZE", sv_histsize },
   { "HISTFILESIZE", sv_histfilesize },
   { "command_oriented_history", sv_command_oriented_history },
+#  if defined (BANG_HISTORY)
   { "histchars", sv_histchars },
+#  endif
   { "history_control", sv_history_control },
   { "HISTCONTROL", sv_history_control },
 #endif /* HISTORY */
@@ -4570,6 +4577,7 @@ sv_command_oriented_history (name)
   SET_INT_VAR (name, command_oriented_history);
 }
 
+#  if defined (BANG_HISTORY)
 /* Setting/unsetting of the history expansion character. */
 
 void
@@ -4595,6 +4603,7 @@ sv_histchars (name)
       history_comment_char = '#';
     }
 }
+#  endif /* BANG_HISTORY */
 #endif /* HISTORY */
 
 void
