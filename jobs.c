@@ -87,18 +87,18 @@
 #if defined (TERMIOS_TTY_DRIVER)
 /* For Sun workstations we undefine a couple of defines so that
    the inclusion of termios.h won't cause complaints. */
-#  if defined (sun)
+#  if defined (SunOS4)
 #    undef ECHO
 #    undef NOFLSH
 #    undef TOSTOP
-#  endif /* sun */
+#  endif /* SunOS4 */
 #  include <termios.h>
 #endif /* TERMIOS_TTY_DRIVER */
 
 /* For the TIOCGPGRP and TIOCSPGRP ioctl parameters on HP-UX */
 
 #if defined (hpux) && !defined (TERMIOS_TTY_DRIVER)
-#include <bsdtty.h>
+#  include <bsdtty.h>
 #endif /* hpux && !TERMIOS_TTY_DRIVER */
 
 #include "bashansi.h"
@@ -115,6 +115,7 @@ extern int errno;
 
 /* Variables used here but defined in other files. */
 extern int interactive, interactive_shell, asynchronous_notification;
+extern int subshell_environment;
 extern int posixly_correct, no_symbolic_links, shell_level;
 extern int interrupt_immediately, last_command_exit_value;
 extern int loop_level, breaking;
@@ -1063,15 +1064,6 @@ make_child (command, async_p)
 	  signal (SIGTSTP, SIG_DFL);
 	  signal (SIGTTOU, SIG_DFL);
 	  signal (SIGTTIN, SIG_DFL);
-
-#if 0
-	  /* This now done by setup_async_signals. */
-	  if (async_p)
-	    {
-	      signal (SIGINT, SIG_IGN);
-	      signal (SIGQUIT, SIG_IGN);
-	    }
-#endif
 	}
 
 #if defined (PGRP_PIPE)
@@ -1517,7 +1509,7 @@ wait_for (pid)
      interactive.  Clean up any dead jobs in either case. */
   if (job != NO_JOB)
     {
-      if (interactive_shell)
+      if (interactive_shell && !subshell_environment)
 	{
 	  if (WIFSIGNALED (child->status) || WIFSTOPPED (child->status))
 	    set_tty_state ();
@@ -2128,7 +2120,7 @@ flush_child (sig)
       while (children_exited--)
 	{
 	  interrupt_immediately = 1;
-	  parse_and_execute (savestring (trap_command), "trap");
+	  parse_and_execute (savestring (trap_command), "trap", -1);
 	}
 
       run_unwind_frame ("SIGCHLD trap");

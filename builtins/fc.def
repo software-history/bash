@@ -121,7 +121,6 @@ typedef struct repl {
 	do { \
 		for (rl = rlist; rl; ) { \
 			REPL *r;	\
-\
 			r = rl->next; \
 			if (rl->pat) \
 				free (rl->pat); \
@@ -258,7 +257,7 @@ fc_builtin (list)
 
       printf ("%s\n", command);
       fc_replhist (command);	/* replace `fc -e -' with command */
-      return (parse_and_execute (command, "fc"));
+      return (parse_and_execute (command, "fc", -1));
     }
 
   /* This is the second form of the command (the list-or-edit-and-rerun
@@ -378,7 +377,7 @@ fc_builtin (list)
       command = (char *)xmalloc (3 + strlen (FC_EDIT_COMMAND) + strlen (fn));
       sprintf (command, "%s %s", FC_EDIT_COMMAND, fn);
     }
-  parse_and_execute (command, "fc");
+  parse_and_execute (command, "fc", -1);
 
   /* Now reopen the file and execute the edited commands. */
 
@@ -624,15 +623,13 @@ fc_replace (pat, rep, command)
 /* Use `command' to replace the last entry in the history list, which,
    by this time, is `fc blah...'.  The intent is that the new command
    become the history entry, and that `fc' should never appear in the
-   history list.  This way you can do `r' to your heart's content.
-
-   Should this do anything with the history_control variable? */
+   history list.  This way you can do `r' to your heart's content. */
 static void
 fc_replhist (command)
      char *command;
 {
   register int i;
-  HIST_ENTRY **hlist, *histent, *discard, *history_get ();
+  HIST_ENTRY **hlist, *histent, *discard;
   char *data;
   int n;
 
@@ -654,11 +651,6 @@ fc_replhist (command)
   if (histent == NULL)
     return;
 
-  if (histent->data)
-    data = savestring (histent->data);
-  else
-    data = (char *) NULL;
-
   n = strlen (command);
 
   if (command[n - 1] == '\n')
@@ -666,14 +658,14 @@ fc_replhist (command)
 
   if (command && *command)
     {
-      discard = replace_history_entry (i, command, data);
+      discard = remove_history (i);
       if (discard)
 	{
 	  if (discard->line)
 	    free (discard->line);
-
 	  free ((char *) discard);
 	}
+      maybe_add_history (command);	/* Obeys HISTCONTROL setting. */
     }
 }
 
@@ -682,7 +674,9 @@ static void
 fc_addhist (line)
      char *line;
 {
-  register int n = strlen (line);
+  register int n;
+
+  n = strlen (line);
 
   if (line[n - 1] == '\n')
     line[n - 1] = '\0';

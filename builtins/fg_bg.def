@@ -49,7 +49,10 @@ fg_builtin (list)
   register WORD_LIST *t = list;
 
   if (!job_control)
-    return (EXECUTION_FAILURE);
+    {
+      builtin_error ("no job control");
+      return (EXECUTION_FAILURE);
+    }
 
   /* If the last arg on the line is '&', then start this job in the
      background.  Else, fg the job. */
@@ -80,7 +83,10 @@ bg_builtin (list)
      WORD_LIST *list;
 {
   if (!job_control)
-    return (EXECUTION_FAILURE);
+    {
+      builtin_error ("no job control");
+      return (EXECUTION_FAILURE);
+    }
 
   return (fg_bg (list, 0));
 }

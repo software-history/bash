@@ -73,6 +73,7 @@ extern int errno;
 #endif /* !errno */
 
 extern int interactive, interactive_shell, login_shell;
+extern int subshell_environment;
 extern int last_command_exit_value;
 #if defined (_POSIX_VERSION)
 extern sigset_t top_level_mask;
@@ -527,7 +528,7 @@ wait_for (pid)
       fprintf (stderr, "\n");
     }
 
-  if (interactive_shell)
+  if (interactive_shell && !subshell_environment)
     {
       if (WIFSIGNALED (status) || WIFSTOPPED (status))
 	set_tty_state ();

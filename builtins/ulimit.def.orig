@@ -114,15 +114,8 @@ static void print_long ();
 
 #define u_ALL_LIMITS		0x7ff
 
-#if !defined (RLIM_INFINITY)
+#ifndef RLIM_INFINITY
 #  define RLIM_INFINITY  0x7fffffff
-#endif
-
-/* Some systems use RLIMIT_NOFILE, others use RLIMIT_OFILE */
-#if defined (HAVE_RESOURCE)
-#  if defined (RLIMIT_OFILE) && !defined (RLIMIT_NOFILE)
-#    define RLIMIT_NOFILE RLIMIT_OFILE
-#  endif
 #endif
 
 #define LIMIT_HARD 0x01

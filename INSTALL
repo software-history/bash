@@ -16,7 +16,8 @@ it later.
 Therefore, for most machines, simply follow this simple checklist
 to install BASH:
 
-  1. Type `make'.
+  1. Type `make'.  If you want to use GCC to compile bash, type
+     `make CC=gcc CPPNAME="$(CC) -E"'.
 
   2. Wait for the compilation to finish.
 
@@ -50,9 +51,9 @@ instructions for doing this are located in the `machines.h' file.
 
 However, if BASH says that your machine type is an
 "UNKNOWN_MACHINE", or BASH thought it knew something about your
-machine but was wrong, then reading the next few sections could be
-of use to you (*note Files::., and *note Porting::., for more
-information).
+machine but was wrong, then reading the next few sections could
+be of use to you (*note Files::., and *note Porting::., for more
+information). 
 
 On the MIPSEB with the BSD universe, you must:
 
@@ -85,7 +86,7 @@ the `make' process:
      This is a file of C comments and text.  It contains a
      reasonable number of `ifdefs' which control what files get
      compiled and which flags are passed to the various C files
-     comprising BASH.  It includes a file called `machines.h',
+     comprising BASH.  It includes files named `machines.h',
      `sysdefs.h', and `config.h'.
 
 `machines.h'
@@ -102,9 +103,9 @@ the `make' process:
 
 `sysdefs.h'
      This file is dynamically made at build time by running the shell
-     script `makeargs.sh'.  If there appears to be something wrong in
-     this file, then edit the `makeargs.sh' script, and mail the
-     changes that you make to bash-maintainers@ai.mit.edu.
+     script `support/mksydefs'.  If there appears to be something wrong
+     in this file, then edit the `mksysdefs' script, and mail the
+     changes that you make to bash-maintainers@prep.ai.mit.edu.
 
 `bash-Makefile'
      This is the output from the initial stage of `make'.  It is a
@@ -158,7 +159,7 @@ and place it within a conditional block based on YoYo.
 Most machines aren't that difficult; simply redefining a few of the
 default values is sufficient.  If you do run across a difficult
 machine, please send all fixes and changes to
-bash-maintainers@ai.mit.edu in the form of context diffs:
+bash-maintainers@prep.ai.mit.edu in the form of context diffs:
 
      diff -c orig-machines.h machines.h >machines.diffs
 
@@ -179,10 +180,12 @@ latest version of BASH that is available.
 
 Once you have ascertained that a bug really exists, you are welcome
 to mail in a bug report.  If you have a fix, please mail that too!
+The program `bashbug' is used to submit bug reports.
 
 Suggestions and "philosophical" bug reports should be mailed to
 bug-bash@ai.mit.edu.  Genuine bug reports should be mailed to the
-same place, or to bash-maintainers@ai.mit.edu.
+same place, or to bash-maintainers@prep.ai.mit.edu.  The `bashbug'
+script sends its messages to bug-bash@prep.ai.mit.edu.
 
 *All* bug reports should include:
 
@@ -196,9 +199,11 @@ same place, or to bash-maintainers@ai.mit.edu.
 
    * A short script or "recipe" which demonstrates the bug.
 
-Without this information, it is generally not possible to
-successfully debug BASH.  Usually, without this information, the
-bug won't manifest itself!
+The `bashbug' program includes much of this information
+automatically.  Without this information, it is generally not
+possible to successfully debug BASH.  Usually, without this
+information, the bug won't manifest itself! 
 
-Discussion and questions about BASH in general (including questions
-about this documentation) can be sent to bash-maintainers@prep.ai.mit.edu.
+Discussion and questions about BASH in general (including
+questions about this documentation) can be sent to
+bash-maintainers@prep.ai.mit.edu. 

@@ -19,7 +19,6 @@
    is generally kept in a file called COPYING or LICENSE.  If you do not
    have a copy of the license, write to the Free Software Foundation,
    675 Mass Ave, Cambridge, MA 02139, USA. */
-#define READLINE_LIBRARY
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -74,10 +73,6 @@ static void update_line (), clear_to_eol ();
 static void delete_chars (), insert_some_chars ();
 
 extern char *xmalloc (), *xrealloc ();
-
-/* Heuristic used to decide whether it is faster to move from CUR to NEW
-   by backing up or outputting a carriage return and moving forward. */
-#define CR_FASTER(new, cur) (((new) + 1) < ((cur) - (new)))
 
 /* **************************************************************** */
 /*								    */
@@ -289,8 +284,8 @@ rl_redisplay ()
 
   if (!invisible_line)
     {
-      visible_line = xmalloc (line_size);
-      invisible_line = xmalloc (line_size);
+      visible_line = (char *)xmalloc (line_size);
+      invisible_line = (char *)xmalloc (line_size);
       line = invisible_line;
       for (in = 0; in < line_size; in++)
 	{
@@ -329,8 +324,8 @@ rl_redisplay ()
 	_rl_output_some_chars (local_prompt_prefix, strlen (local_prompt_prefix));
 
       if (local_prompt)
-	strncpy (line + out, local_prompt, local_len);
-      out += local_len;
+	strncpy (line + out,  local_prompt, local_len);
+      out +=  local_len;
       line[out] = '\0';
       wrap_offset = local_len - visible_length;
     }
@@ -361,8 +356,8 @@ rl_redisplay ()
       if (out + 8 >= line_size)		/* XXX - 8 for \t */
 	{
 	  line_size *= 2;
-	  visible_line = xrealloc (visible_line, line_size);
-	  invisible_line = xrealloc (invisible_line, line_size);
+	  visible_line = (char *)xrealloc (visible_line, line_size);
+	  invisible_line = (char *)xrealloc (invisible_line, line_size);
 	  line = invisible_line;
 	}
 
@@ -444,7 +439,6 @@ rl_redisplay ()
 	     OFFSET.  OFFSET is wrap_offset for the invisible line and
 	     visible_wrap_offset for the line currently displayed. */
 
-#define W_OFFSET(line, offset) ((line) == 0 ? offset : 0)
 #define L_OFFSET(n, offset) ((n) > 0 ? ((n) * screenwidth) + (offset) : 0)
 #define VIS_CHARS(line) &visible_line[L_OFFSET((line), visible_wrap_offset)]
 #define VIS_LINE(line) ((line) > _rl_vis_botlin) ? "" : VIS_CHARS(line)
@@ -453,9 +447,7 @@ rl_redisplay ()
 	  /* For each line in the buffer, do the updating display. */
 	  for (linenum = 0; linenum <= inv_botlin; linenum++)
 	    {
-	      update_line (VIS_LINE(linenum), INV_LINE(linenum), linenum,
-			   screenwidth + W_OFFSET(linenum, visible_wrap_offset),
-			   screenwidth + W_OFFSET(linenum, wrap_offset));
+	      update_line (VIS_LINE(linenum), INV_LINE(linenum), linenum);
 
 	      /* If this is the line with the prompt, we might need to
 		 compensate for invisible characters in the new line. Do
@@ -495,44 +487,17 @@ rl_redisplay ()
 	  /* Move the cursor where it should be. */
 	  /* Which line? */
 	  nleft = c_pos - screenwidth - wrap_offset;
-	  if (nleft >= 0)
+	  if (nleft > 0)
 	    cursor_linenum = 1 + nleft / screenwidth;
 	  else
 	    cursor_linenum = 0;
 	  _rl_move_vert (cursor_linenum);
 
-	  /* We have to reprint the prompt if it contains invisible
-	     characters, since it's not generally OK to just reprint
-	     the characters from the current cursor position. */
-	  nleft = visible_length + wrap_offset;
-	  if (cursor_linenum == 0 && wrap_offset > 0 && _rl_last_c_pos > 0 &&
-	      _rl_last_c_pos < nleft && local_prompt)
-	    {
-	      if (term_cr)
-		tputs (term_cr, 1, _rl_output_character_function);
-	      _rl_output_some_chars (local_prompt, nleft);
-	      _rl_last_c_pos = nleft;
-	    }
-
 	  /* Where on that line?  And where does that line start
 	     in the buffer? */
 	  pos = L_OFFSET(cursor_linenum, wrap_offset);
 	  nleft = c_pos - pos;
-
-	  /* Since backspace() doesn't know about invisible characters in the
-	     prompt, and there's no good way to tell it, we compensate for
-	     those characters here and call backspace() directly. */
-	  if (wrap_offset && cursor_linenum == 0 && nleft < _rl_last_c_pos)
-	    {
-	      /* XXX - I'm not sure yet why the -1 is necessary - XXX */
-	      if (nleft < _rl_last_c_pos - 1)
-		nleft -= wrap_offset;
-	      backspace (_rl_last_c_pos - nleft);
-	      _rl_last_c_pos = nleft;
-	    }
-
-	  if (nleft != _rl_last_c_pos)
-	    _rl_move_cursor_relative (nleft, &invisible_line[pos]);
+	  _rl_move_cursor_relative (nleft, &invisible_line[pos]);
 	}
     }
   else				/* Do horizontal scrolling. */
@@ -563,8 +528,8 @@ rl_redisplay ()
       if (!rl_display_fixed || forced_display || lmargin != last_lmargin)
 	{
 	  forced_display = 0;
-	  update_line (&visible_line[last_lmargin], &invisible_line[lmargin],
-		       0, screenwidth, screenwidth);
+	  update_line (&visible_line[last_lmargin],
+		       &invisible_line[lmargin], 0);
 
 	  _rl_move_cursor_relative (c_pos - lmargin, &invisible_line[lmargin]);
 	  last_lmargin = lmargin;
@@ -666,43 +631,22 @@ update_line (old, new, current_line, omax, nmax)
     }
 
   _rl_move_vert (current_line);
-
-  /* If this is the first line and there are invisible characters in the
-     prompt string, and the prompt string has not changed, then redraw
-     the entire prompt string.  We can only do this reliably if the
-     terminal supports a `cr' capability.
-
-     This is more than just an efficiency hack -- there is a problem with
-     redrawing portions of the prompt string if they contain terminal
-     escape sequences (like drawing the `unbold' sequence without a
-     corresponding `bold') that manifests itself on certain terminals. */
-
-  lendiff = strlen (local_prompt);
-  if (current_line == 0 && lendiff > visible_length &&
-      _rl_last_c_pos > 0 && (ofd - old) >= lendiff && term_cr)
-    {
-      tputs (term_cr, 1, _rl_output_character_function);
-      _rl_output_some_chars (local_prompt, lendiff);
-      _rl_last_c_pos = lendiff;
-    }
-
   _rl_move_cursor_relative (ofd - old, old);
 
   /* if (len (new) > len (old)) */
   lendiff = (nls - nfd) - (ols - ofd);
 
   /* Insert (diff (len (old), len (new)) ch. */
-  temp = ne - nfd;
   if (lendiff > 0)
     {
       if (terminal_can_insert)
 	{
 	  /* Sometimes it is cheaper to print the characters rather than
 	     use the terminal's capabilities. */
-	  if ((2 * temp) < lendiff && !term_IC)
+	  if ((2 * (ne - nfd)) < lendiff && !term_IC)
 	    {
-	      _rl_output_some_chars (nfd, temp);
-	      _rl_last_c_pos += temp;
+	      _rl_output_some_chars (nfd, (ne - nfd));
+	      _rl_last_c_pos += (ne - nfd);
 	    }
 	  else
 	    {
@@ -718,45 +662,40 @@ update_line (old, new, current_line, omax, nmax)
 		  _rl_output_some_chars (nfd, lendiff);
 		  _rl_last_c_pos += lendiff;
 		}
-	      temp = nls - nfd;
 	      /* Copy (new) chars to screen from first diff to last match. */
-	      if ((temp - lendiff) > 0)
+	      if (((nls - nfd) - lendiff) > 0)
 		{
-		  _rl_output_some_chars (&nfd[lendiff], temp - lendiff);
-		  _rl_last_c_pos += temp - lendiff;
+		  _rl_output_some_chars (&nfd[lendiff], ((nls - nfd) - lendiff));
+		  _rl_last_c_pos += ((nls - nfd) - lendiff);
 		}
 	    }
 	}
       else
 	{		/* cannot insert chars, write to EOL */
-	  _rl_output_some_chars (nfd, temp);
-	  _rl_last_c_pos += temp;
+	  _rl_output_some_chars (nfd, (ne - nfd));
+	  _rl_last_c_pos += (ne - nfd);
 	}
     }
   else				/* Delete characters from line. */
     {
       /* If possible and inexpensive to use terminal deletion, then do so. */
-      if (term_dc && (2 * temp) >= -lendiff)
+      if (term_dc && (2 * (ne - nfd)) >= (-lendiff))
 	{
 	  if (lendiff)
 	    delete_chars (-lendiff); /* delete (diff) characters */
 
 	  /* Copy (new) chars to screen from first diff to last match */
-	  temp = nls - nfd;
-	  if (temp > 0)
+	  if ((nls - nfd) > 0)
 	    {
-	      _rl_output_some_chars (nfd, temp);
-	      _rl_last_c_pos += temp;
+	      _rl_output_some_chars (nfd, (nls - nfd));
+	      _rl_last_c_pos += (nls - nfd);
 	    }
 	}
       /* Otherwise, print over the existing material. */
       else
 	{
-	  if (temp > 0)
-	    {
-	      _rl_output_some_chars (nfd, temp);
-	      _rl_last_c_pos += temp;
-	    }
+	  _rl_output_some_chars (nfd, (ne - nfd));
+	  _rl_last_c_pos += (ne - nfd);
 	  clear_to_eol ((oe - old) - (ne - new));
 	}
     }
@@ -800,7 +739,7 @@ _rl_move_cursor_relative (new, data)
 
   /* It may be faster to output a CR, and then move forwards instead
      of moving backwards. */
-  if (CR_FASTER (new, _rl_last_c_pos))
+  if (new + 1 < _rl_last_c_pos - new)
     {
       tputs (term_cr, 1, _rl_output_character_function);
       _rl_last_c_pos = 0;
@@ -907,23 +846,19 @@ int
 rl_character_len (c, pos)
      register int c, pos;
 {
-  unsigned char uc;
-
-  uc = (unsigned char)c;
-
-  if (META_CHAR (uc))
+  if (META_CHAR (c))
     return ((_rl_output_meta_chars == 0) ? 4 : 1);
 
-  if (uc == '\t')
+  if (c == '\t')
     {
 #if defined (DISPLAY_TABS)
-      return (((pos | 7) + 1) - pos);
+      return (((pos | (int)7) + 1) - pos);
 #else
       return (2);
 #endif /* !DISPLAY_TABS */
     }
 
-  return ((isprint (uc)) ? 1 : 2);
+  return ((isprint (c)) ? 1 : 2);
 }
 
 /* How to print things in the "echo-area".  The prompt is treated as a

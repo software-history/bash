@@ -77,20 +77,25 @@ wait_builtin (list)
   while (list)
     {
       pid_t pid;
-      if (digit (*(list->word->word)))
+      char *w;
+
+      w = list->word->word;
+      if (digit (*w))
 	{
-	  if (sscanf (list->word->word, "%d", &pid) == 1)
-	    status = wait_for_single_pid (pid);
+	  if (all_digits (w + 1))
+	    {
+	      pid = (pid_t)atoi (w);
+	      status = wait_for_single_pid (pid);
+	    }
 	  else
 	    {
-	      builtin_error
-		("`%s' is not a pid or job spec", list->word->word);
+	      builtin_error ("`%s' is not a pid or job spec", w);
 	      status = EXECUTION_FAILURE;
 	      goto return_status;
 	    }
 	}
 #if defined (JOB_CONTROL)
-      else if (job_control)
+      else if (job_control && *w)
 	/* Must be a job spec.  Check it out. */
 	{
 	  int job;
@@ -116,8 +121,7 @@ wait_builtin (list)
 #endif /* JOB_CONTROL */
       else
 	{
-	  builtin_error ("%s is not a pid or legal job spec",
-			 list->word->word);
+	  builtin_error ("`%s' is not a pid or legal job spec", w);
 	  status = EXECUTION_FAILURE;
 	}
       list = list->next;

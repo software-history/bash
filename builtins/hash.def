@@ -174,9 +174,7 @@ hash_builtin (list)
       if (!find_shell_builtin (word) && (!var))
 	{
 	  if (full_path && executable_file (full_path))
-	    {
-	      remember_filename (word, full_path, dot_found_in_search);
-	    }
+	    remember_filename (word, full_path, dot_found_in_search, 0);
 	  else
 	    {
 	      builtin_error ("%s: not found", word);
@@ -199,11 +197,12 @@ hash_builtin (list)
 
 /* Place FILENAME (key) and FULL_PATHNAME (data->path) into the
    hash table.  CHECK_DOT if non-null is for future calls to
-   find_hashed_filename (). */
+   find_hashed_filename ().  FOUND is the initial value for
+   times_found. */
 void
-remember_filename (filename, full_pathname, check_dot)
+remember_filename (filename, full_pathname, check_dot, found)
      char *filename, *full_pathname;
-     int check_dot;
+     int check_dot, found;
 {
   register BUCKET_CONTENTS *item;
 
@@ -219,5 +218,5 @@ remember_filename (filename, full_pathname, check_dot)
     }
   pathdata(item)->path = savestring (full_pathname);
   pathdata(item)->check_dot = check_dot;
-  item->times_found = 0;
+  item->times_found = found;
 }

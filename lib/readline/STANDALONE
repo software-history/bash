@@ -21,9 +21,11 @@ System-specific options:
 
 WINSIZE_IN_IOCTL_H	need to include <sys/ioctl.h> for TIOCGWINSZ
 HAVE_GETPW_DECLS	the getpw* functions are declared in <pwd.h>
+HAVE_STRCASECMP		the strcasecmp and strncasecmp functions are available
 
 USG			Running a variant of System V
 USGr3			Running System V.3
 XENIX_22		Xenix 2.2
 Linux			Linux
 CRAY			running a recent version of Cray UNICOS
+SunOS4			Running SunOS 4.x

@@ -36,7 +36,7 @@
 /* Variables used here and defined in other files. */
 extern int posixly_correct;
 extern int variable_context, line_number;
-extern int interactive_shell, login_shell, shell_level;
+extern int interactive, interactive_shell, login_shell, shell_level;
 extern int subshell_environment;
 extern int build_version;
 extern char *dist_version;
@@ -148,7 +148,8 @@ initialize_shell_variables (env)
 
 	  eval_string = xmalloc (3 + string_length + strlen (name));
 	  sprintf (eval_string, "%s %s", name, string);
-	  parse_and_execute (eval_string, name);
+
+	  parse_and_execute (eval_string, name, 0);
 
 	  if (name[char_index - 1] == ')')
 	    name[char_index - 2] = '\0';
@@ -353,8 +354,13 @@ initialize_shell_variables (env)
 
 #if defined (HISTORY)
   if (interactive_shell && remember_on_history)
-    command_oriented_history =
-      find_variable ("command_oriented_history") != (SHELL_VAR *)NULL;
+    {
+      sv_command_oriented_history ("command_oriented_history");
+      if (find_variable ("history_control"))
+	sv_history_control ("history_control");	/* gone in next release */
+      else
+	sv_history_control ("HISTCONTROL");
+    }
 #endif /* HISTORY */
 
   /* Initialize the dynamic variables, and seed their values. */

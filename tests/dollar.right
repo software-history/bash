@@ -1,5 +1,3 @@
-expect an error message
-cat: a b: No such file or directory
-expect two lines of output
-this is a file named a
-this is a file named b
+argv[1] = <a b>
+argv[1] = <a>
+argv[2] = <b>

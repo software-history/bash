@@ -209,7 +209,7 @@ main ()
 #if defined (convex) || defined (__convex__) || defined (__convexc__)
 #  if !defined (__GNUC__)
   printf (" -pcc");
-#endif /* !__GNUC__ */
+#  endif /* !__GNUC__ */
   printf (" -Dconvex");
 #endif /* convex */
 #if defined (dmert)

@@ -123,7 +123,9 @@ char *current_host_name = (char *)NULL;
  */
 int login_shell = 0;
 
-/* Non-zero means that at this moment, the shell is interactive. */
+/* Non-zero means that at this moment, the shell is interactive.  In
+   general, this means that the shell is at this moment reading input
+   from the keyboard. */
 int interactive = 0;
 
 /* Non-zero means that the shell was started as an interactive shell. */
@@ -525,7 +527,7 @@ main (argc, argv, env)
   if (interactive_shell)
     {
       char *term = getenv ("TERM");
-      no_line_editing = term && (STREQ (term, "emacs"));
+      no_line_editing |= term && (STREQ (term, "emacs"));
     }
 
   top_level_arg_index = arg_index;
@@ -664,12 +666,11 @@ main (argc, argv, env)
 	     according to the same tests done by execute_simple_command (),
 	     and report an error and exit if it is. */
 	  sample_len = read (fd, sample, sizeof (sample));
-	  if (sample_len > 0)
-	    if (check_binary_file (sample, sample_len))
-	      {
-		report_error ("%s: cannot execute binary file", filename);
-		exit (EX_BINARY_FILE);
-	      }
+	  if (sample_len > 0 && (check_binary_file (sample, sample_len)))
+	    {
+	      report_error ("%s: cannot execute binary file", filename);
+	      exit (EX_BINARY_FILE);
+	    }
 	  /* Now rewind the file back to the beginning. */
 	  lseek (fd, 0L, 0);
 	}
@@ -918,7 +919,7 @@ maybe_make_restricted (name)
   char *temp;
 
   temp = base_pathname (shell_name);
-  if (restricted || (STREQ (temp, "rbash"))
+  if (restricted || (STREQ (temp, "rbash")))
     {
       set_var_read_only ("PATH");
       non_unsettable ("PATH");
@@ -959,6 +960,13 @@ file_error_and_exit:
   if (fstat (fd, &file_info) == -1)
     goto file_error_and_exit;
 
+  if (S_ISDIR (file_info.st_mode))
+    {
+      internal_error ("%s: cannot execute directories", filename);
+      free (filename);
+      return -1;
+    }
+
   string = (char *)xmalloc (1 + (int)file_info.st_size);
   tresult = read (fd, string, file_info.st_size);
 
@@ -991,7 +999,7 @@ file_error_and_exit:
   if (return_val)
     parse_and_execute_cleanup ();
   else
-    tresult = parse_and_execute (string, filename);
+    tresult = parse_and_execute (string, filename, -1);
 
   if (force_noninteractive)
     interactive = old_interactive;
@@ -1030,7 +1038,7 @@ run_one_command (command)
 	  programming_error ("Bad jump %d", code);
 	}
     }
-   return (parse_and_execute (savestring (command), "-c"));
+   return (parse_and_execute (savestring (command), "-c", -1));
 }
 #endif /* ONESHOT */
 

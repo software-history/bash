@@ -104,6 +104,10 @@ extern HIST_ENTRY *next_history ();
    is no history, return NULL. */
 extern HIST_ENTRY **history_list ();
 
+/* Return the history entry which is logically at OFFSET in the history
+   array.  OFFSET is relative to history_base. */
+extern HIST_ENTRY *history_get ();
+
 /* Search the history for STRING, starting at history_offset.
    If DIRECTION < 0, then the search is through previous entries,
    else through subsequent.  If the string is found, then

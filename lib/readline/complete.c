@@ -19,6 +19,7 @@
    is generally kept in a file called COPYING or LICENSE.  If you do not
    have a copy of the license, write to the Free Software Foundation,
    675 Mass Ave, Cambridge, MA 02139, USA. */
+#define READLINE_LIBRARY
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -458,20 +459,26 @@ rl_complete_internal (what_to_do)
       if (rl_point == end)
 	{
 	  int quoted = 0;
-	  /* We didn't find an unclosed quoted substring up which to do
+	  /* We didn't find an unclosed quoted substring upon which to do
 	     completion, so use the word break characters to find the
 	     substring on which to complete. */
 	  while (--rl_point)
 	    {
 	      scan = rl_line_buffer[rl_point];
+
+	      if (strchr (rl_completer_word_break_characters, scan) == 0)
+		continue;
+
 #if defined (SHELL)
 	      /* Don't let word break characters in quoted substrings break
 		 words for the completer. */
 	      if (found_quote && char_is_quoted (rl_line_buffer, rl_point))
 		continue;
 #endif /* SHELL */
-	      if (strchr (rl_completer_word_break_characters, scan))
-	        break;
+
+	      /* Convoluted code, but it avoids an n2 algorithm with calls
+	      	 to char_is_quoted. */
+	      break;
 	    }
 	}
 
@@ -534,6 +541,7 @@ rl_complete_internal (what_to_do)
   else
     {
       register int i;
+      int should_quote;
 
       /* It seems to me that in all the cases we handle we would like
 	 to ignore duplicate possiblilities.  Scan for the text to
@@ -616,8 +624,16 @@ rl_complete_internal (what_to_do)
 	     matches don't require a quoted substring. */
 	  replacement = matches[0];
 
-	  if (matches[0] && rl_completer_quote_characters && !quote_char &&
-	      rl_filename_completion_desired)
+	  should_quote = matches[0] && rl_completer_quote_characters &&
+			 rl_filename_completion_desired;
+
+#if defined (SHELL)
+	  should_quote = should_quote && (!quote_char || quote_char == '"');
+#else
+	  should_quote = should_quote && !quote_char;
+#endif
+
+	  if (should_quote)
 	    {
 	      int do_replace;
 
@@ -638,7 +654,6 @@ rl_complete_internal (what_to_do)
 	      if (do_replace != NO_MATCH)
 		{
 #if defined (SHELL)
-		  /* XXX - experimental */
 		  /* Quote the replacement, since we found an
 		     embedded word break character in a potential
 		     match. */
@@ -662,7 +677,18 @@ rl_complete_internal (what_to_do)
 
 		  rlen = strlen (rtext);
 		  replacement = xmalloc (rlen + 1);
-		  strcpy (replacement, rtext);
+		  /* If we're completing on a quoted string where the user
+		     has already supplied the opening quote, we don't want
+		     the quote in the replacement text, and we reset
+		     QUOTE_CHAR to 0 to avoid an extra closing quote. */
+		  if (quote_char == '"')
+		    {
+		      strcpy (replacement, rtext + 1);
+		      rlen--;
+		      quote_char = 0;
+		    }
+		  else
+		    strcpy (replacement, rtext);
 		  if (do_replace == MULT_MATCH)
 		    replacement[rlen - 1] = '\0';
 		  free (rtext);

@@ -34,7 +34,7 @@ Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. */
 #include "stdc.h"
 #include "builtins/common.h"
 
-#if defined (__GNUC__)
+#if defined (__GNUC__) || defined (ardent)
 extern int printf __P((const char *, ...));	/* Yuck.  Double yuck. */
 #endif
 
@@ -660,7 +660,7 @@ cprintf (format, arg1, arg2)
 {
   register char *s;
   char char_arg[2], *argp, *args[2];
-  int arg_len;
+  int arg_len, c, arg_index;
 
   args[0] = arg1;
   args[1] = arg2;
@@ -692,7 +692,7 @@ cprintf (format, arg1, arg2)
 
 	    case 's':
 	      argp = (char *)args[arg_index++];
-	      arg_len = strlen (string);
+	      arg_len = strlen (argp);
 	      break;
 
 	    case 'd':

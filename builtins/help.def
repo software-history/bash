@@ -105,7 +105,7 @@ A star (*) next to a name means that the command is disabled.\n\
 	      int doc_index;
 
 	      QUIT;
-	      if ((strnicmp (pattern, name, plen) == 0) ||
+	      if ((strncmp (pattern, name, plen) == 0) ||
 		  (fnmatch (pattern, name, 0) != FNM_NOMATCH))
 		{
 		  printf ("%s: %s\n", name, shell_builtins[i].short_doc);
@@ -132,4 +132,3 @@ A star (*) next to a name means that the command is disabled.\n\
   fflush (stdout);
   return (EXECUTION_SUCCESS);
 }
-

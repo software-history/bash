@@ -191,11 +191,6 @@ extern char *strchr (), *strrchr ();
 #  define KEYMAP_TO_FUNCTION(data)	(Function *)(data)
 #endif
 
-#ifndef savestring
-extern char *xmalloc ();
-#define savestring(x) strcpy (xmalloc (1 + strlen (x)), (x))
-#endif
-
 /* Possible values for _rl_bell_preference. */
 #define NO_BELL 0
 #define AUDIBLE_BELL 1

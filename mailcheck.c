@@ -293,7 +293,7 @@ remember_mail_dates ()
 {
   char *mailpaths = get_mailpaths ();
   char *mailfile, *mp;
-  int i = 0, pass_next = 0;
+  int i = 0;
   
   while (mailfile = extract_colon_unit (mailpaths, &i))
     {
@@ -321,7 +321,6 @@ remember_mail_dates ()
 void
 check_mail ()
 {
-  register int string_index;
   char *current_mail_file, *you_have_mail_message;
   char *mailpaths, *mp;
   int file_index = 0;

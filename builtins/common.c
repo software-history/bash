@@ -533,11 +533,14 @@ parse_and_execute_cleanup ()
 }
 
 /* Parse and execute the commands in STRING.  Returns whatever
-   execute_command () returns.  This frees STRING. */
+   execute_command () returns.  This frees STRING.  INTERACT is
+   the new value for `interactive' while the commands are being
+   executed.  A value of -1 means don't change it. */
 int
-parse_and_execute (string, from_file)
+parse_and_execute (string, from_file, interact)
      char *string;
      char *from_file;
+     int interact;
 {
   int last_result = EXECUTION_SUCCESS;
   int code = 0, jump_to_top_level = 0;
@@ -548,6 +551,8 @@ parse_and_execute (string, from_file)
   unwind_protect_int (parse_and_execute_level);
   unwind_protect_jmp_buf (top_level);
   unwind_protect_int (indirection_level);
+  if (interact != -1 && interactive != interact)
+    unwind_protect_int (interactive);
 
 #if defined (HISTORY)
   if (interactive_shell)
@@ -567,6 +572,8 @@ parse_and_execute (string, from_file)
   parse_and_execute_level++;
   push_stream ();
   indirection_level++;
+  if (interact != -1)
+    interactive = interact;
 
 #if defined (HISTORY)
   /* We don't remember text read by the shell this way on
@@ -596,6 +603,7 @@ parse_and_execute (string, from_file)
 
 	if (code)
 	  {
+	    jump_to_top_level = 0;
 	    switch (code)
 	      {
 	      case FORCE_EOF:

@@ -2,7 +2,7 @@
 #
 # Makefile for Bash.
 # If your cpp doesn't like -P, just get rid of it (the -P, not cpp).
-# If you wish to use Gcc, then just type `make CPPNAME="gcc -E" CC=gcc'.
+# If you wish to use Gcc, then type `make CC=gcc CPPNAME="$(CC) -E"'.
 # If you wish to use GNU's Make, then change `MAKE'.
 # If you don't like the destination, then change `bindir'.
 # The file that you most likely want to look at is cpp-Makefile.
@@ -29,7 +29,7 @@ CPPNAME =
 CPP     = `/bin/sh $(CPPMAGIC) $(GETCPPSYMS) "$(CPPNAME)"` -P
 
 CPP_MAKEFILE = $(srcdir)/cpp-Makefile
-ANSI_MAKEFILE = $(srcdir)/ansi-Makefile
+ANSI_MAKEFILE = ansi-Makefile
 
 # CPPFLAGS = $(SYSTEM) $(CPP_DEFINES)
 CPPFLAGS = $(CPP_DEFINES) -I. -I$(srcdir)
@@ -55,7 +55,7 @@ GETCPPSYMS_SRC = $(SUPPORTSRC)getcppsyms.c
 SQUASH_BLANKS = $(GAWK) -f $(CAT_S)
 
 all:	.notified bash-Makefile
-	$(MAKE) $(MFLAGS) $(MAKEARGS) srcdir=$(srcdir) -f bash-Makefile
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) srcdir=$(srcdir)
 
 bash-Makefile: $(CPP_MAKEFILE) Makefile machines.h sysdefs.h config.h
 	@-if [ -f ansi-Makefile ]; then \
@@ -65,35 +65,38 @@ bash-Makefile: $(CPP_MAKEFILE) Makefile machines.h sysdefs.h config.h
 	    cp $(CPP_MAKEFILE) tmp-Makefile.c; \
 	  fi
 	$(RM) $(GETCPPSYMS)
-	sh $(SUPPORTSRC)mkdirs support
+	$(SHELL) $(SUPPORTSRC)mkdirs support
 	$(CC) -o $(GETCPPSYMS) $(GETCPPSYMS_SRC)
 	rm -f bash-Makefile
-	@/bin/sh -c 'echo $(CPP) $(CPPFLAGS) $(CPP_ARGS) tmp-Makefile.c \| $(SQUASH_BLANKS) \> bash-Makefile'
-	@/bin/sh -c '$(CPP) $(CPPFLAGS) $(CPP_ARGS) tmp-Makefile.c | $(SQUASH_BLANKS) >bash-Makefile'
+	@$(SHELL) -c 'echo $(CPP) $(CPPFLAGS) $(CPP_ARGS) tmp-Makefile.c \| $(SQUASH_BLANKS) \> bash-Makefile'
+	@$(SHELL) -c '$(CPP) $(CPPFLAGS) $(CPP_ARGS) tmp-Makefile.c | $(SQUASH_BLANKS) >bash-Makefile'
 	rm -f tmp-Makefile.c
 	@test -s bash-Makefile || { rm -f bash-Makefile ; exit 1; }
 
 sysdefs.h: $(MKSYSDEFS)
-	/bin/sh $(MKSYSDEFS)
+	$(SHELL) $(MKSYSDEFS) -s $(srcdir)
 
 # This is also performed by support/mksysdefs, but there's no way to change
 # it if cpp-Makefile is changed without changing anything else, since there
 # are no dependencies.  This lets you run `make ansi-Makefile'.
 ansi-Makefile: $(CPP_MAKEFILE)
-	cat $(CPP_MAKEFILE) | grep -v '/\*\*/' > $@
+	grep -v '/\*\*/' $(CPP_MAKEFILE) > $@
 
 # Subsequent lines contain targets that are correctly handled by an
 # existing bash-Makefile.
 
-DEFINES install newversion mailable distribution architecture: bash-Makefile
-	$(MAKE) $(MFLAGS) $(MAKEARGS) bindir=$(bindir) -f bash-Makefile $@
+DEFINES newversion mailable distribution architecture: bash-Makefile
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
+
+install uninstall: bash-Makefile
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
 
 tests bash.tar.Z tags documentation clone: bash-Makefile directory-frob
-	$(MAKE) $(MFLAGS) $(MAKEARGS) bindir=$(bindir) -f bash-Makefile $@
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
 
-clean distclean: bash-Makefile directory-frob
+clean distclean realclean: bash-Makefile directory-frob
 	rm -f .notified
-	$(MAKE) $(MFLAGS) $(MAKEARGS) bindir=$(bindir) -f bash-Makefile $@
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
 
 directory-frob:
 
@@ -112,4 +115,3 @@ directory-frob:
 	@echo "	* a fix for the bug if you have one!"
 	@echo ""
 	@touch .notified
-	

@@ -3,6 +3,8 @@
 CP	    = cp
 RM	    = rm -f
 
+INSTALL_DATA = install -c -m 644
+
 DOC_SUPPORT = ../lib/doc-support/
 TEXINDEX    = $(DOC_SUPPORT)texindex
 TEXINDSRC   = $(DOC_SUPPORT)texindex.c
@@ -12,6 +14,9 @@ DVIPS	    = dvips -D 300 $(QUIETPS) -o $@	# tricky
 TEXINPUTS   = ./../lib/readline/doc
 MAKEINFO    = makeinfo
 
+# Change to groff -Tascii if you don't have nroff
+NROFF	    = nroff
+
 HSUSER      = ./../lib/readline/doc/hsuser.texinfo
 RLUSER      = ./../lib/readline/doc/rluser.texinfo
 
@@ -19,24 +24,24 @@ RLUSER      = ./../lib/readline/doc/rluser.texinfo
 
 .1.ps:
 	$(RM) $@
-	groff -man $*.1 > $@
+	groff -man $< > $@
 .1.txt:
 	$(RM) $@
-	nroff -man $*.1 > $@
+	${NROFF} -man $< > $@
 
 .ms.ps:
 	$(RM) $@
-	groff -ms $*.ms > $@
+	groff -ms $< > $@
 .ms.txt:
 	$(RM) $@
-	nroff -ms $*.ms > $@
+	${NROFF} -ms $< > $@
 
 .3.ps:
 	$(RM) $@
-	groff -man $*.3 > $@
+	groff -man $< > $@
 .3.txt:
 	$(RM) $@
-	nroff -man $*.3 > $@
+	${NROFF} -man $< > $@
 
 all: ps info dvi text
 
@@ -52,7 +57,7 @@ features.dvi: features.texi $(HSUSER) $(RLUSER)
 
 features.ps: features.dvi
 	$(RM) $@
-	$(DVIPS) $*.dvi
+	$(DVIPS) features.dvi
 
 features.info: features.texi $(HSUSER) $(RLUSER)
 	$(MAKEINFO) --no-split -I$(TEXINPUTS) features.texi
@@ -95,7 +100,14 @@ distclean:
 realclean:	clean
 
 install: all
-	$(CP) bash.1 $(mandir)
+	[ -d $(mandir) ] || mkdir $(mandir)
+	$(INSTALL_DATA) bash.1 $(mandir)
 	sed 's:so bash.1:so man1/bash.1:' < builtins.1 > $(mandir)/bash_builtins.1
-	$(CP) readline.3 $(man3dir)
-	$(CP) features.info $(infodir)/bash.info
+	[ -d $(man3dir) ] || mkdir $(man3dir)
+	$(INSTALL_DATA) readline.3 $(man3dir)
+	[ -d $(infodir) ] || mkdir $(infodir)
+	$(INSTALL_DATA) features.info $(infodir)/bash.info
+
+uninstall:
+	$(RM) $(mandir)/bash.1 $(mandir)/bash_builtins.1
+	$(RM) $(man3dir)/readline.3 $(infodir)/bash.info

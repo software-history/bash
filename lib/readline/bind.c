@@ -19,6 +19,7 @@
    is generally kept in a file called COPYING or LICENSE.  If you do not
    have a copy of the license, write to the Free Software Foundation,
    675 Mass Ave, Cambridge, MA 02139, USA. */
+#define READLINE_LIBRARY
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -89,7 +90,13 @@ extern char **rl_funmap_names ();
 void rl_set_keymap_from_edit_mode ();
 
 static int glean_key_from_name ();
+
+#if defined (HAVE_STRCASECMP)
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+#else
 static int stricmp (), strnicmp ();
+#endif
 
 #if defined (STATIC_MALLOC)
 static char *xmalloc (), *xrealloc ();
@@ -1419,6 +1426,7 @@ substring_member_of_array (string, array)
   return (0);
 }
 
+#if !defined (HAVE_STRCASECMP)
 /* Whoops, Unix doesn't have strnicmp. */
 
 /* Compare at most COUNT characters from string1 to string2.  Case
@@ -1436,7 +1444,8 @@ strnicmp (string1, string2, count)
       ch2 = *string2++;
       if (to_upper(ch1) == to_upper(ch2))
 	count--;
-      else break;
+      else
+        break;
     }
   return (count);
 }
@@ -1455,8 +1464,9 @@ stricmp (string1, string2)
       if (to_upper(ch1) != to_upper(ch2))
 	return (1);
     }
-  return (*string1 | *string2);
+  return (*string1 - *string2);
 }
+#endif /* !HAVE_STRCASECMP */
 
 /* Determine if s2 occurs in s1.  If so, return a pointer to the
    match in s1.  The compare is case insensitive. */
@@ -1468,7 +1478,7 @@ strindex (s1, s2)
   register int len = strlen (s1);
 
   for (i = 0; (len - i) >= l; i++)
-    if (strnicmp (&s1[i], s2, l) == 0)
+    if (strnicmp (s1 + i, s2, l) == 0)
       return (s1 + i);
   return ((char *)NULL);
 }

@@ -23,8 +23,13 @@
 #if !defined (_READLINE_H_)
 #define _READLINE_H_
 
-#include <readline/keymaps.h>
-#include <readline/tilde.h>
+#if defined (READLINE_LIBRARY)
+#  include "keymaps.h"
+#  include "tilde.h"
+#else
+#  include <readline/keymaps.h>
+#  include <readline/tilde.h>
+#endif
 
 /* The functions for manipulating the text of the line within readline.
 Most of these functions are bound to keys by default. */
@@ -46,7 +51,7 @@ extern int
   rl_upcase_word (), rl_downcase_word (), rl_capitalize_word (),
   rl_restart_output (), rl_re_read_init_file (), rl_dump_functions (),
   rl_delete_horizontal_space (), rl_history_search_forward (),
-  rl_history_search_backward ();
+  rl_history_search_backward (), rl_tty_status ();
 
 /* `Public' utility functions. */
 extern int rl_insert_text (), rl_delete_text (), rl_kill_text ();
@@ -63,9 +68,8 @@ extern int rl_begin_undo_group (), rl_end_undo_group ();
 extern void rl_add_undo (), free_undo_list ();
 extern int rl_do_undo ();
 
-#if defined (PAREN_MATCHING)
+/* Not available unless readline is compiled -DPAREN_MATCHING. */
 extern int rl_insert_close ();
-#endif /* PAREN_MATCHING */
 
 /* These are *both* defined even when VI_MODE is not. */
 extern int rl_vi_editing_mode (), rl_emacs_editing_mode ();
@@ -75,8 +79,7 @@ extern int
   rl_noninc_forward_search (), rl_noninc_reverse_search (),
   rl_noninc_forward_search_again (), rl_noninc_reverse_search_again ();
 
-#if defined (VI_MODE)
-/* Things for vi mode. */
+/* Things for vi mode. Not available unless readline is compiled -DVI_MODE. */
 extern int rl_vi_check (), rl_vi_textmod_command ();
 extern int
   rl_vi_redo (), rl_vi_tilde_expand (),
@@ -92,7 +95,6 @@ extern int
   rl_vi_overstrike_delete (), rl_vi_replace(), rl_vi_column (),
   rl_vi_delete_to (), rl_vi_change_to (), rl_vi_yank_to (),
   rl_vi_complete (), rl_vi_fetch_history ();
-#endif /* VI_MODE */
 
 /* Keyboard macro commands. */
 extern int rl_start_kbd_macro (), rl_end_kbd_macro ();

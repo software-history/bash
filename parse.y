@@ -78,6 +78,7 @@ static void report_syntax_error ();
 static void handle_eof_input_unit ();
 static void prompt_again ();
 static void reset_readline_prompt ();
+static void print_prompt ();
 
 /* PROMPT_STRING_POINTER points to one of these, never to an actual string. */
 char *ps1_prompt, *ps2_prompt;
@@ -86,6 +87,10 @@ char *ps1_prompt, *ps2_prompt;
    ps1_ or ps2_prompt. */
 char **prompt_string_pointer = (char **)NULL;
 char *current_prompt_string;
+
+/* The decoded prompt string.  Used if READLINE is not defined or if
+   editing is turned off.  Analogous to current_readline_prompt. */
+static char *current_decoded_prompt;
 
 /* The number of lines read from input while creating the current command. */
 int current_command_line_count = 0;
@@ -743,7 +748,11 @@ init_yy_io (get, unget, type, name, location)
   else
     bash_input.name = (char *)NULL;
 
+#if defined (CRAY)
+  memcpy((char *)&bash_input.location.string, (char *)&location.string, sizeof(location));
+#else
   bash_input.location = location;
+#endif
   bash_input.getter = get;
   bash_input.ungetter = unget;
 }
@@ -828,14 +837,10 @@ yy_readline_get ()
       current_readline_line_index = 0;
 
       if (!current_readline_line)
-	{
-	  current_readline_line_index = 0;
-	  return (EOF);
-	}
+	return (EOF);
 
       line_len = strlen (current_readline_line);
       current_readline_line = xrealloc (current_readline_line, 2 + line_len);
-      /* replaces strcat (current_readline_line, "\n"); */
       current_readline_line[line_len++] = '\n';
       current_readline_line[line_len] = '\0';
     }
@@ -1374,6 +1379,13 @@ shell_getc (remove_quoted_newline)
       cleanup_dead_jobs ();
 #endif /* !JOB_CONTROL */
 
+#if defined (READLINE)
+      if (interactive && no_line_editing)
+#else
+      if (interactive)
+#endif
+	print_prompt ();
+
       if (bash_input.type == st_stream)
 	clearerr (stdin);
 
@@ -1536,7 +1548,7 @@ execute_prompt_command (command)
 {
   Function *temp_last, *temp_this;
   char *last_lastarg;
-  int temp_exit_value, temp_eof_encountered, temp_interactive;
+  int temp_exit_value, temp_eof_encountered;
 
   temp_last = last_shell_builtin;
   temp_this = this_shell_builtin;
@@ -1546,10 +1558,7 @@ execute_prompt_command (command)
   if (last_lastarg)
     last_lastarg = savestring (last_lastarg);
 
-  temp_interactive = interactive;
-  interactive = 0;
-  parse_and_execute (savestring (command), "PROMPT_COMMAND");
-  interactive = temp_interactive;
+  parse_and_execute (savestring (command), "PROMPT_COMMAND", 0);
 
   last_shell_builtin = temp_last;
   this_shell_builtin = temp_this;
@@ -1582,20 +1591,6 @@ yylex ()
 	  check_mail ();
 	  reset_mail_timer ();
 	}
-
-#if 0
-      /* Allow the execution of a random command just before the printing
-	 of each primary prompt.  If the shell variable PROMPT_COMMAND
-	 is set then the value of it is the command to execute. */
-      if (prompt_is_ps1)
-	{
-	  char *command_to_execute;
-
-	  command_to_execute = get_string_value ("PROMPT_COMMAND");
-	  if (command_to_execute)
-	    execute_prompt_command (command_to_execute);
-	}
-#endif
 
       /* Avoid printing a prompt if we're not going to read anything, e.g.
 	 after resetting the parser with read_token (RESET). */
@@ -2507,16 +2502,21 @@ prompt_again ()
   if (!no_line_editing)
     {
       FREE (current_readline_prompt);
-      
       current_readline_prompt = temp_prompt;
     }
   else
 #endif	/* READLINE */
     {
-      fprintf (stderr, "%s", temp_prompt);
-      fflush (stderr);
-      free (temp_prompt);
+      FREE (current_decoded_prompt);
+      current_decoded_prompt = temp_prompt;
     }
+}
+
+static void
+print_prompt ()
+{
+  fprintf (stderr, "%s", current_decoded_prompt);
+  fflush (stderr);
 }
 
 /* Return a string which will be printed as a prompt.  The string

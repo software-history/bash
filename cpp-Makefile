@@ -29,7 +29,7 @@
 /**/# not be editing this file; edit cpp-Makefile, machines.h, or
 /**/# support/mksysdefs instead.  Then, assuming the edits were required
 /**/# to compile Bash on your system, mail the changes you had to make to
-/**/# bash-maintainers@ai.mit.edu.  We will do our best to incorporate
+/**/# bash-maintainers@prep.ai.mit.edu.  We will do our best to incorporate
 /**/# them into the next release.
 
 /**/# Make sure the first target in the makefile is the right one
@@ -145,8 +145,13 @@ SHELL = MAKE_SHELL
 SHELL=/bin/sh
 #endif /* MAKE_SHELL */
 
+CP = cp
 RM = rm -f
 AR = ar
+
+INSTALL_PROGRAM = install -c
+INSTALL_DATA = install -c -m 644
+
 COMPRESS = gzip
 COMPRESS_EXT = .gz
 
@@ -281,6 +286,10 @@ VARARGSH = -DHAVE_VARARGS_H
 STRCHR = -DHAVE_STRCHR
 #endif /* HAVE_STRCHR */
 
+#if defined (HAVE_STRCASECMP)
+STRCASE = -DHAVE_STRCASECMP
+#endif /* HAVE_STRCASECMP */
+
 #if defined (HAVE_DEV_FD)
 /**/# This system has the /dev/fd directory for naming open files.
 DEVFD = -DHAVE_DEV_FD
@@ -292,9 +301,9 @@ DEVFD = -DHAVE_DEV_FD
 CFLAGS = -O -g
 
 SYSTEM_FLAGS = $(LINEBUF) $(VPRINTF) $(UNISTD) $(STDLIB) $(LIMITSH) \
-       $(GROUPS) $(RESOURCE) $(PARAM) \
-       $(SIGHANDLER) $(SYSDEP) $(WAITH) $(GETWD) $(DUP2) $(STRERROR) \
-       $(DIRENT) $(DIRENTH) $(STRINGH) $(VARARGSH) $(STRCHR) $(DEVFD) \
+       $(GROUPS) $(RESOURCE) $(PARAM) $(SIGHANDLER) $(SYSDEP) $(WAITH) \
+       $(GETWD) $(DUP2) $(STRERROR) $(DIRENT) $(DIRENTH) $(STRINGH) \
+       $(VARARGSH) $(STRCHR) $(STRCASE) $(DEVFD) \
        -D$(Machine) -D$(OS)
 LDFLAGS	= $(NOSHARE) $(SYSDEP_LD) $(EXTRA_LD_PATH) $(PROFILE_FLAGS) $(CFLAGS)
 CCFLAGS	= $(PROFILE_FLAGS) $(CFLAGS) $(SYSTEM_FLAGS) -DSHELL $(ALLOCA_CFLAGS) \
@@ -358,7 +367,7 @@ LIBRARY_CFLAGS  = $(PROFILE_FLAGS) $(CFLAGS) $(SIGHANDLER) $(ALLOCA_CFLAGS) \
 		  $(SYSDEP) $(DIRENT) $(DIRENTH) $(STRINGH) $(VARARGSH) \
 		  $(PTEM) $(PTE) $(STREAM) $(STRERROR) $(RESOURCE) \
 		  $(STRCHR) -D$(Machine) -D$(OS) $(UNISTD) $(LIMITSH) \
-		  $(STDLIB) -DSHELL
+		  $(STRCASE) $(STDLIB) -DSHELL
 
 /**/# These are required for sending bug reports.
 SYSTEM_NAME = $(Machine)
@@ -1273,6 +1282,7 @@ builtins/eval.o: dispose_cmd.h make_cmd.h subst.h externs.h stdc.h
 builtins/exec.o: command.h config.h memalloc.h error.h general.h maxpath.h quit.h 
 builtins/exec.o: shell.h unwind_prot.h variables.h $(DEFDIR)common.h stdc.h
 builtins/exec.o: dispose_cmd.h make_cmd.h subst.h externs.h execute_cmd.h
+builtins/exec.o: flags.h
 builtins/exit.o: command.h config.h memalloc.h error.h general.h maxpath.h
 builtins/exit.o: shell.h unwind_prot.h variables.h quit.h
 builtins/exit.o: dispose_cmd.h make_cmd.h subst.h externs.h stdc.h
@@ -1429,11 +1439,22 @@ install:	.made
 		-if [ -f $(bindir)/$(Program) ]; \
 		  then mv $(bindir)/$(Program) $(bindir)/$(Program).old; \
 		fi
-		cp $(Program) $(bindir)/$(Program)
+		$(INSTALL_PROGRAM) $(Program) $(bindir)/$(Program)
+		-if [ -f $(bindir)/bashbug ]; \
+		  then mv $(bindir)/bashbug $(bindir)$bashbug.old; \
+		fi
+		$(INSTALL_PROGRAM) bashbug $(bindir)/bashbug
 		$(RM) installed-$(Program)
 		-ln -s $(bindir)/$(Program) installed-$(Program)
-		( cd $(DOCDIR) ; $(MAKE) $(MFLAGS) mandir=$(mandir) man3dir=$(man3dir) infodir=$(infodir) $@ )
+		( cd $(DOCDIR) ; $(MAKE) $(MFLAGS) mandir=$(mandir) \
+			man3dir=$(man3dir) infodir=$(infodir) \
+			INSTALL_PROGRAM="${INSTALL_PROGRAM}" \
+			INSTALL_DATA="${INSTALL_DATA}" $@ )
 
+uninstall:	.made
+		$(RM) $(bindir)/$(Program) installed-$(Program) $(bindir)/bashbug
+		( cd $(DOCDIR) ; $(MAKE) $(MFLAGS) mandir=$(mandir) man3dir=$(man3dir) infodir=$(infodir) $@ )
+		
 .distribution:
 		./newversion.aux -dir $(srcdir) -dist `$(Program) -c 'echo $$BASH_VERSION'`
 
@@ -1486,8 +1507,10 @@ clean:
 		$(CLEAN_MALLOC) ;
 
 distclean:	clean
+		$(RM) installed-bash
+
 realclean:	clean
-		$(RM) y.tab.c y.tab.h parser-built
+		$(RM) y.tab.c y.tab.h parser-built installed-bash
 
 recho:		$(SUPPORT_SRC)recho.c
 	@$(CC) -o $@ $(SUPPORT_SRC)recho.c

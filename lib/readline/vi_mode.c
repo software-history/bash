@@ -20,6 +20,7 @@
    is generally kept in a file called COPYING or LICENSE.  If you do not
    have a copy of the license, write to the Free Software Foundation,
    675 Mass Ave, Cambridge, MA 02139, USA. */
+#define READLINE_LIBRARY
 
 /* **************************************************************** */
 /*								    */
@@ -37,6 +38,10 @@
 #else
 #  include "ansi_stdlib.h"
 #endif /* HAVE_STDLIB_H */
+
+#if defined (HAVE_UNISTD_H)
+#  include <unistd.h>
+#endif
 
 #include <stdio.h>
 

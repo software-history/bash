@@ -63,4 +63,25 @@ then
 fi
 
 rm -f x.c x.o a.out
+
+
+cat > x.c << EOF
+
+main()
+{
+	if (strcasecmp("abc", "AbC") == 0)
+		exit(0);
+	exit(1);
+}
+EOF
+
+if ${CC} x.c >/dev/null 2>&1
+then
+	if ./a.out
+	then
+		echo '#define HAVE_STRCASECMP'
+	fi
+fi
+
+rm -f x.c x.o a.out
 exit 0

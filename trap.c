@@ -168,6 +168,8 @@ run_pending_traps ()
 
   for (sig = 0; sig < NSIG; sig++)
     {
+      /* XXX this could be made into a counter by using
+         while (pending_traps[sig]--) instead of the if statement. */
       if (pending_traps[sig])
 	{
 #if defined (_POSIX_VERSION)
@@ -190,7 +192,7 @@ run_pending_traps ()
 	      interrupt_state = 0;
 	    }
 	  else
-	    parse_and_execute (savestring (trap_list[sig]), "trap");
+	    parse_and_execute (savestring (trap_list[sig]), "trap", 0);
 
 	  pending_traps[sig] = 0;
 
@@ -444,7 +446,7 @@ run_exit_trap ()
       code = setjmp (top_level);
 
       if (code == 0)
-	parse_and_execute (trap_command, "trap");
+	parse_and_execute (trap_command, "trap", 0);
 
       last_command_exit_value = old_exit_value;
     }
@@ -540,9 +542,11 @@ run_interrupt_trap ()
   char *command, *saved_command;
   int old_exit_value;
 
-  /* Run the interrupt trap if SIGINT is trapped and not ignored. */
+  /* Run the interrupt trap if SIGINT is trapped and not ignored, and if
+     we are not currently running in the interrupt trap handler. */
   if ((sigmodes[SIGINT] & SIG_TRAPPED) &&
-      (trap_list[SIGINT] != (char *) IGNORE_SIG))
+      (trap_list[SIGINT] != (char *)IGNORE_SIG) &&
+      (trap_list[SIGINT] != (char *)IMPOSSIBLE_TRAP_HANDLER))
     {
       command = savestring (trap_list[SIGINT]);
 
@@ -551,7 +555,7 @@ run_interrupt_trap ()
 
       trap_list[SIGINT] = (char *)IMPOSSIBLE_TRAP_HANDLER;
 
-      parse_and_execute (command, "interrupt trap");
+      parse_and_execute (command, "interrupt trap", 0);
 
       if (trap_list[SIGINT] == (char *)IMPOSSIBLE_TRAP_HANDLER)
 	trap_list[SIGINT] = saved_command;

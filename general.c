@@ -21,6 +21,7 @@
 
 #include "config.h"	/* includes unistd.h for us */
 #include <stdio.h>
+#include <ctype.h>
 #include <errno.h>
 #include "bashtypes.h"
 #include <sys/param.h>
@@ -542,7 +543,11 @@ canonicalize_pathname (path)
       while (result[i] == '/')
 	i++;
 
+#if !defined (apollo)
       if ((start + 1) != i)
+#else
+      if ((start + 1) != i && (start != 0 || i != 2))
+#endif /* apollo */
 	{
 	  strcpy (result + start + 1, result + i);
 	  i = start + 1;
@@ -726,27 +731,10 @@ full_pathname (file)
   }
 }
 
-/* Determine if s2 occurs in s1.  If so, return a pointer to the
-   match in s1.  The compare is case insensitive. */
-char *
-strindex (s1, s2)
-     char *s1, *s2;
-{
-  register int i, l = strlen (s2);
-  register int len = strlen (s1);
-
-  for (i = 0; (len - i) >= l; i++)
-    if (strnicmp (s1 + i, s2, l) == 0)
-      return (s1 + i);
-  return ((char *)NULL);
-}
+#if !defined (HAVE_STRCASECMP)
 
 #if !defined (to_upper)
-#define lowercase_p(c) (((c) > ('a' - 1) && (c) < ('z' + 1)))
-#define uppercase_p(c) (((c) > ('A' - 1) && (c) < ('Z' + 1)))
-#define pure_alphabetic(c) (lowercase_p(c) || uppercase_p(c))
-#define to_upper(c) (lowercase_p(c) ? ((c) - 32) : (c))
-#define to_lower(c) (uppercase_p(c) ? ((c) + 32) : (c))
+#  define to_upper(c) (islower(c) ? toupper(c) : (c))
 #endif /* to_upper */
 
 /* Compare at most COUNT characters from string1 to string2.  Case
@@ -784,7 +772,23 @@ stricmp (string1, string2)
       if (to_upper(ch1) != to_upper(ch2))
 	return (1);
     }
-  return (*string1 | *string2);
+  return (*string1 - *string2);
+}
+#endif /* !HAVE_STRCASECMP */
+
+/* Determine if s2 occurs in s1.  If so, return a pointer to the
+   match in s1.  The compare is case insensitive. */
+char *
+strindex (s1, s2)
+     char *s1, *s2;
+{
+  register int i, l = strlen (s2);
+  register int len = strlen (s1);
+
+  for (i = 0; (len - i) >= l; i++)
+    if (strnicmp (s1 + i, s2, l) == 0)
+      return (s1 + i);
+  return ((char *)NULL);
 }
 
 /* Set the environment variables $LINES and $COLUMNS in response to

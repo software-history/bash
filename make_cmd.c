@@ -572,7 +572,8 @@ make_word_array (list)
    the commands have stdin set to /dev/null when job control is not
    active, instead of just the last.  This is wrong, and needs fixing
    up.  This function takes the `&' and applies it to the last command
-   in the list. */
+   in the list.  This is done only for lists connected by `;'; it makes
+   `;' bind `tighter' than `&'. */
 COMMAND *
 connect_async_list (command, command2, connector)
      COMMAND *command, *command2;
@@ -582,6 +583,14 @@ connect_async_list (command, command2, connector)
 
   t1 = command;
   t = command->value.Connection->second;
+
+  if (!t || (command->flags & CMD_WANT_SUBSHELL) ||
+      command->value.Connection->connector != ';')
+    {
+      t = command_connect (command, command2, connector);
+      return t;
+    }
+
   /* This is just defensive programming.  The Yacc precedence rules
      will generally hand this function a command where t points directly
      to the command we want (e.g. given a ; b ; c ; d &, t1 will point
@@ -589,7 +598,8 @@ connect_async_list (command, command2, connector)
      this if the list is not being executed as a unit in the background
      with `( ... )', so we have to check for CMD_WANT_SUBSHELL.  That's
      the only way to tell. */
-  while (((t->flags & CMD_WANT_SUBSHELL) == 0) && (t->type == cm_connection))
+  while (((t->flags & CMD_WANT_SUBSHELL) == 0) && t->type == cm_connection &&
+	 t->value.Connection->connector == ';')
     {
       t1 = t;
       t = t->value.Connection->second;

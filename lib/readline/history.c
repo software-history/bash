@@ -23,6 +23,7 @@
 /* The goal is to make the implementation transparent, so that you
    don't have to know what data types are used, just what functions
    you can call.  I think I have done that. */
+#define READLINE_LIBRARY
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -665,7 +666,7 @@ history_truncate_file (fname, lines)
 
   /* Write only if there are more lines in the file than we want to
      truncate to. */
-  if (i && ((file = open (filename, O_WRONLY, 0666)) != -1))
+  if (i && ((file = open (filename, O_WRONLY|O_TRUNC, 0666)) != -1))
     {
       write (file, buffer + i, finfo.st_size - i);
       close (file);
@@ -1558,6 +1559,14 @@ history_expand (hstring, output)
   /* Used when adding the string. */
   char *temp;
 
+  /* Setting the history expansion character to 0 inhibits all
+     history expansion. */
+  if (history_expansion_char == 0)
+    {
+      *output = savestring (hstring);
+      return (0);
+    }
+    
   /* Prepare the buffer for printing error messages. */
   result = xmalloc (result_len = 256);
   result[0] = '\0';
@@ -1803,7 +1812,9 @@ get_history_word_specifier (spec, from, caller_index)
 
   /* Try to get FIRST and LAST figured out. */
 
-  if (spec[i] == '-' || spec[i] == '^')
+  if (spec[i] == '-')
+    first = 0;
+  else if (spec[i] == '^')
     first = 1;
   else if (digit (spec[i]) && expecting_word_spec)
     {

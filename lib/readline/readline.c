@@ -20,6 +20,7 @@
    is generally kept in a file called COPYING or LICENSE.  If you do not
    have a copy of the license, write to the Free Software Foundation,
    675 Mass Ave, Cambridge, MA 02139, USA. */
+#define READLINE_LIBRARY
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -3256,6 +3257,19 @@ rl_getc (stream)
 #endif /* !__GO32__ */
     }
 }
+
+#if !defined (SHELL)
+#ifdef savestring
+#undef savestring
+#endif
+/* Backwards compatibilty, now that savestring has been removed from
+   all `public' readline header files. */
+savestring (s)
+     char *s;
+{
+  return ((char *)strcpy (xmalloc (1 + (int)strlen (x)), (x)));
+}
+#endif
 
 #if defined (STATIC_MALLOC)
 

@@ -36,9 +36,9 @@ eval_builtin (list)
 {
   int result;
 
-  /* Note that parse_and_execute () free ()'s what it is passed. */
+  /* Note that parse_and_execute () frees the string it is passed. */
   if (list)
-    result = parse_and_execute (string_list (list), "eval");
+    result = parse_and_execute (string_list (list), "eval", -1);
   else
     result = EXECUTION_SUCCESS;
   return (result);

@@ -70,7 +70,7 @@ umask_builtin (list)
       else if (*(list->word->word) == '-')
 	{
 	  bad_option (list->word->word);
-	  builtin_error ("usage: ulimit [-S] [mode]");
+	  builtin_error ("usage: umask [-S] [mode]");
 	  return (EX_USAGE);
 	}
       else

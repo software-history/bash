@@ -19,6 +19,7 @@
    is generally kept in a file called COPYING or LICENSE.  If you do not
    have a copy of the license, write to the Free Software Foundation,
    675 Mass Ave, Cambridge, MA 02139, USA. */
+#define READLINE_LIBRARY
 
 #if defined (STATIC_MALLOC)
 static char *xmalloc (), *xrealloc ();
@@ -150,7 +151,6 @@ static FUNMAP default_funmap[] = {
   { "vi-tilde-expand", rl_vi_tilde_expand },
   { "vi-yank-arg", rl_vi_yank_arg },
   { "vi-yank-to", rl_vi_yank_to },
-
 #endif /* VI_MODE */
 
  {(char *)NULL, (Function *)NULL }

@@ -586,7 +586,7 @@ vi_edit_and_execute_command (count, c)
       using_history ();
       command = savestring (VI_EDIT_COMMAND);
     }
-  parse_and_execute (command, "v");
+  parse_and_execute (command, "v", -1);
 }
 #endif /* VI_MODE */
 

@@ -198,8 +198,6 @@ extern int absolute_program __P((char *));
 extern char *base_pathname __P((char *));
 extern char *full_pathname __P((char *));
 extern char *strindex __P((char *, char *));
-extern int strnicmp __P((char *, char *, int));
-extern int stricmp __P((char *, char *));
 extern void set_lines_and_columns __P((int, int));
 extern void xbcopy __P((char *, char *, int));
 extern char *polite_directory_format __P((char *));
@@ -208,6 +206,14 @@ extern void tilde_initialize __P((void));
 #if !defined (strerror)
 extern char *strerror __P((int));
 #endif
+
+#if !defined (HAVE_STRCASECMP)
+extern int strnicmp __P((char *, char *, int));
+extern int stricmp __P((char *, char *));
+#else /* HAVE_STRCASECMP */
+#  define stricmp strcasecmp
+#  define strnicmp strncasecmp
+#endif /* HAVE_STRCASECMP */
 
 extern int dup2 __P((int, int));
 extern char *getwd __P((char *));

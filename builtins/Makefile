@@ -171,7 +171,7 @@ eval.o: ../shell.h ../unwind_prot.h ../variables.h ../maxpath.h
 exec.o: ../command.h ../config.h ../memalloc.h ../error.h ../general.h
 exec.o: ../quit.h ../dispose_cmd.h ../make_cmd.h ../subst.h ../externs.h
 exec.o: ../shell.h ../unwind_prot.h ../variables.h common.h ../execute_cmd.h
-exec.o: ../maxpath.h
+exec.o: ../maxpath.h ../flags.h
 exit.o: ../command.h ../config.h ../memalloc.h ../error.h ../general.h
 exit.o: ../quit.h ../dispose_cmd.h ../make_cmd.h ../subst.h ../externs.h
 exit.o: ../shell.h ../unwind_prot.h ../variables.h ../maxpath.h

@@ -696,7 +696,12 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	case '&':
 	  {
 	    COMMAND *tc = command->value.Connection->first;
-	    REDIRECT *rp = tc->redirects;
+	    REDIRECT *rp;
+
+	    if (!tc)
+	      break;
+
+	    rp = tc->redirects;
 
 	    if (ignore_return && tc)
 	      tc->flags |= CMD_IGNORE_RETURN;
@@ -1939,7 +1944,7 @@ execute_function (var, words, flags, fds_to_close, async, subshell)
     fc = tc;
 
   return_catch_flag++;
-  return_val =  setjmp (return_catch);
+  return_val = setjmp (return_catch);
 
   if (return_val)
     result = return_catch_value;
@@ -2099,10 +2104,15 @@ execute_builtin_or_function (words, builtin, var, redirects,
 void
 setup_async_signals ()
 {
-  set_signal_handler (SIGINT, SIG_IGN);
-  set_signal_ignored (SIGINT);
-  set_signal_handler (SIGQUIT, SIG_IGN);
-  set_signal_ignored (SIGQUIT);
+#if defined (JOB_CONTROL)
+  if (job_control == 0)
+#endif
+    {
+      set_signal_handler (SIGINT, SIG_IGN);
+      set_signal_ignored (SIGINT);
+      set_signal_handler (SIGQUIT, SIG_IGN);
+      set_signal_ignored (SIGQUIT);
+    }
 }
 
 /* Execute a simple command that is hopefully defined in a disk file
@@ -2131,15 +2141,17 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
      struct fd_bitmap *fds_to_close;
      int nofork;	/* Don't fork, just exec, if no pipes */
 {
+  register char *pathname;
   char *hashed_file, *command, **args;
   int pid, temp_path;
   SHELL_VAR *path;
 
+  pathname = words->word->word;
 #if defined (RESTRICTED_SHELL)
-  if (restricted && strchr (words->word->word, '/'))
+  if (restricted && strchr (pathname, '/'))
     {
       report_error ("%s: restricted: cannot specify `/' in command names",
-		    words->word->word);
+		    pathname);
       last_command_exit_value = EXECUTION_FAILURE;
       return;
     }
@@ -2157,51 +2169,37 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
   /* Don't waste time trying to find hashed data for a pathname
      that is already completely specified. */
 
-  if (!path && !absolute_program (words->word->word))
-    hashed_file = find_hashed_filename (words->word->word);
+  if (!path && !absolute_program (pathname))
+    hashed_file = find_hashed_filename (pathname);
 
   /* If a command found in the hash table no longer exists, we need to
      look for it in $PATH.  Thank you Posix.2.  This forces us to stat
      every command found in the hash table.  It seems pretty stupid to me,
      so I am basing it on the presence of POSIXLY_CORRECT. */
 
-  if (hashed_file)
+  if (hashed_file && posixly_correct)
     {
-      if (posixly_correct)
-	{
-	  int st;
+      int st;
 
-	  st = file_status (hashed_file);
-	  if ((st ^ (FS_EXISTS | FS_EXECABLE)) != 0)
-	    {
-	      remove_hashed_filename (words->word->word);
-	      hashed_file = (char *)NULL;
-	    }
+      st = file_status (hashed_file);
+      if ((st ^ (FS_EXISTS | FS_EXECABLE)) != 0)
+	{
+	  remove_hashed_filename (pathname);
+	  hashed_file = (char *)NULL;
 	}
     }
 
   if (hashed_file)
     command = savestring (hashed_file);
+  else if (absolute_program (pathname))
+    /* A command containing a slash is not looked up in PATH or saved in
+       the hash table. */
+    command = savestring (pathname);
   else
     {
-      /* A command containing a slash is not looked up in PATH. */
-      if (absolute_program (words->word->word))
-	command = savestring (words->word->word);
-      else
-	{
-	  command = find_user_command (words->word->word);
-
-	  /* A command name containing a slash is not saved in the
-	     hash table. */
-	  if (command && !hashing_disabled && !temp_path)
-	    {
-	      remember_filename
-		(words->word->word, command, dot_found_in_search);
-
-	      /* Increase the number of hits to 1. */
-	      find_hashed_filename (words->word->word);
-	    }
-	}
+      command = find_user_command (pathname);
+      if (command && !hashing_disabled && !temp_path)
+	remember_filename (pathname, command, dot_found_in_search, 1);
     }
 
   maybe_make_export_env ();
@@ -2529,7 +2527,8 @@ do_piping (pipe_in, pipe_out)
       if (dup2 (pipe_in, 0) < 0)
 	internal_error ("cannot duplicate fd %d to fd 0: %s",
 			pipe_in, strerror (errno));
-      close (pipe_in);
+      if (pipe_in > 0)
+        close (pipe_in);
     }
   if (pipe_out != NO_PIPE)
     {
@@ -2538,7 +2537,8 @@ do_piping (pipe_in, pipe_out)
 	  if (dup2 (pipe_out, 1) < 0)
 	    internal_error ("cannot duplicate fd %d to fd 1: %s",
 			    pipe_out, strerror (errno));
-	  close (pipe_out);
+	  if (pipe_out == 0 || pipe_out > 1)
+	    close (pipe_out);
 	}
       else
 	dup2 (1, 2);
@@ -3014,6 +3014,9 @@ do_redirection_internal (redirect, for_real, remembering, set_clexec)
 		else
 		  add_undo_close_redirect (redirector);
 
+#if defined (BUFFERED_INPUT)
+	      check_bash_input (redirector);
+#endif
 	      if (dup2 (fd, redirector) < 0)
 		{
 		  close (fd);
@@ -3079,6 +3082,7 @@ do_redirection_internal (redirect, for_real, remembering, set_clexec)
 	    add_undo_redirect (redirector);
 
 #if defined (BUFFERED_INPUT)
+	  check_bash_input (redirector);
 	  close_buffered_fd (redirector);
 #else /* !BUFFERED_INPUT */
 	  close (redirector);

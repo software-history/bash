@@ -1,6 +1,27 @@
 /* chardefs.h -- Character definitions for readline. */
-#ifndef _CHARDEFS_
-#define _CHARDEFS_
+
+/* Copyright (C) 1994 Free Software Foundation, Inc.
+
+   This file is part of the GNU Readline Library, a library for
+   reading lines of text with interactive input and history editing.
+
+   The GNU Readline Library is free software; you can redistribute it
+   and/or modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 1, or
+   (at your option) any later version.
+
+   The GNU Readline Library is distributed in the hope that it will be
+   useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+   of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   The GNU General Public License is often shipped with GNU software, and
+   is generally kept in a file called COPYING or LICENSE.  If you do not
+   have a copy of the license, write to the Free Software Foundation,
+   675 Mass Ave, Cambridge, MA 02139, USA. */
+
+#ifndef _CHARDEFS_H
+#define _CHARDEFS_H
 
 #include <ctype.h>
 
@@ -9,14 +30,6 @@
 #else
 #  include <strings.h>
 #endif /* HAVE_STRING_H */
-
-#ifndef savestring
-extern char *xmalloc ();
-#  ifndef strcpy
-extern char *strcpy ();
-#  endif
-#define savestring(x) strcpy (xmalloc (1 + strlen (x)), (x))
-#endif
 
 #ifndef whitespace
 #define whitespace(c) (((c) == ' ') || ((c) == '\t'))
@@ -40,14 +53,24 @@ extern char *strcpy ();
 #define UNMETA(c) ((c) & (~meta_character_bit))
 #define UNCTRL(c) to_upper(((c)|control_character_bit))
 
+/* Old versions
 #define lowercase_p(c) (((c) > ('a' - 1) && (c) < ('z' + 1)))
 #define uppercase_p(c) (((c) > ('A' - 1) && (c) < ('Z' + 1)))
+*/
+
+#define lowercase_p(c) (islower(c))
+#define uppercase_p(c) (isupper(c))
 
 #define pure_alphabetic(c) (lowercase_p(c) || uppercase_p(c))
 
+/* Old versions
+#  define to_upper(c) (lowercase_p(c) ? ((c) - 32) : (c))
+#  define to_lower(c) (uppercase_p(c) ? ((c) + 32) : (c))
+*/
+
 #ifndef to_upper
-#define to_upper(c) (lowercase_p(c) ? ((c) - 32) : (c))
-#define to_lower(c) (uppercase_p(c) ? ((c) + 32) : (c))
+#  define to_upper(c) (islower(c) ? toupper(c) : (c))
+#  define to_lower(c) (isupper(c) ? tolower(c) : (c))
 #endif
 
 #define CTRL_P(c) ((c) < control_character_threshold)
@@ -86,7 +109,7 @@ extern char *strcpy ();
 #ifdef SPACE
 #undef SPACE
 #endif
-#define SPACE 0x20
+#define SPACE ' '	/* XXX - was 0x20 */
 
 #ifdef ESC
 #undef ESC
@@ -94,4 +117,4 @@ extern char *strcpy ();
 
 #define ESC CTRL('[')
 
-#endif  /* _CHARDEFS_ */
+#endif  /* _CHARDEFS_H */

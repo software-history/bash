@@ -165,7 +165,7 @@ source_builtin (list)
       if (return_val)
 	parse_and_execute_cleanup ();
       else
-	result = parse_and_execute (string, filename);
+	result = parse_and_execute (string, filename, -1);
 
       run_unwind_frame ("File Sourcing");
 

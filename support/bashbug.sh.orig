@@ -75,7 +75,7 @@ then
 		exit
 	fi
 
-	rmail $BUGADDR < $TEMP || cat $TEMP >> $HOME/dead.bashbug
+	rmail $BUGADDR < $TEMP
 fi
 
 exit 0

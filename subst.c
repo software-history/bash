@@ -63,6 +63,7 @@ pid_t last_command_subst_pid = NO_PID;
 
 /* Extern functions and variables from different files. */
 extern int last_command_exit_value, interactive, interactive_shell;
+extern int subshell_environment;
 extern int dollar_dollar_pid, no_brace_expansion;
 extern int posixly_correct;
 extern int opterr, optind;
@@ -710,24 +711,24 @@ char_is_quoted (string, eindex)
       if (pass_next)
 	{
 	  pass_next = 0;
-	  if (i >= eindex - 1)
-	    quoted++;
+	  if (i >= eindex)	/* XXX was if (i >= eindex - 1) */
+	    return 1;
 	  continue;
 	}
-      else if (quoted)
-	continue;
       else if (string[i] == '\'')
         {
+          i++;
           temp = string_extract_single_quoted (string, &i);
           free (temp);
-          if (i >= eindex)
+          if (i > eindex)
             return 1;
         }
       else if (string[i] == '"')
         {
+          i++;
           temp = string_extract_double_quoted (string, &i);
           free (temp);
-          if (i >= eindex)
+          if (i > eindex)
             return 1;
         }
       else if (string[i] == '\\')
@@ -736,7 +737,7 @@ char_is_quoted (string, eindex)
           continue;
         }
     }
-  return (quoted);
+  return (0);
 }
 
 /* Extract the name of the variable to bind to from the assignment string. */
@@ -1844,12 +1845,15 @@ process_substitute (string, open_for_read_in_child)
      int open_for_read_in_child;
 {
   char *pathname;
-  int fd, result, old_interactive;
+  int fd, result;
   pid_t old_pid, pid;
 #if defined (HAVE_DEV_FD)
   int parent_pipe_fd, child_pipe_fd;
   int fildes[2];
 #endif /* HAVE_DEV_FD */
+#if defined (JOB_CONTROL)
+  pid_t old_pipeline_pgrp;
+#endif  
 
   if (!string || !*string)
     return ((char *)NULL);
@@ -1880,20 +1884,19 @@ process_substitute (string, open_for_read_in_child)
   old_pid = last_made_pid;
 
 #if defined (JOB_CONTROL)
-  {
-    pid_t old_pipeline_pgrp = pipeline_pgrp;
-    pipeline_pgrp = shell_pgrp;
-    pid = make_child ((char *)NULL, 1);
-    if (pid == 0)
-      {
-        /* Cancel traps, in trap.c. */
-        restore_original_signals ();
-        setup_async_signals ();
-      }
-    set_sigchld_handler ();
-    stop_making_children ();
-    pipeline_pgrp = old_pipeline_pgrp;
-  }
+  old_pipeline_pgrp = pipeline_pgrp;
+  pipeline_pgrp = shell_pgrp;
+  pid = make_child ((char *)NULL, 1);
+  if (pid == 0)
+    {
+      /* Cancel traps, in trap.c. */
+      restore_original_signals ();
+      setup_async_signals ();
+      subshell_environment++;
+    }
+  set_sigchld_handler ();
+  stop_making_children ();
+  pipeline_pgrp = old_pipeline_pgrp;
 #else /* !JOB_CONTROL */
   pid = make_child ((char *)NULL, 1);
   if (pid == 0)
@@ -1901,6 +1904,7 @@ process_substitute (string, open_for_read_in_child)
       /* Cancel traps, in trap.c. */
       restore_original_signals ();
       setup_async_signals ();
+      subshell_environment++;
     }
 #endif /* !JOB_CONTROL */
 
@@ -1972,10 +1976,7 @@ process_substitute (string, open_for_read_in_child)
   close (parent_pipe_fd);
 #endif /* HAVE_DEV_FD */
 
-  old_interactive = interactive;
-  interactive = 0;
-  result = parse_and_execute (string, "process substitution");
-  interactive = old_interactive;
+  result = parse_and_execute (string, "process substitution", 0);
 
 #if !defined (HAVE_DEV_FD)
   /* Make sure we close the named pipe in the child before we exit. */
@@ -2095,7 +2096,7 @@ command_substitute (string, quoted)
       else if (result)
 	exit (EXECUTION_FAILURE);
       else
-	exit (parse_and_execute (string, "command substitution"));
+	exit (parse_and_execute (string, "command substitution", -1));
     }
   else
     {
@@ -4519,7 +4520,7 @@ sv_histchars (name)
   if (temp)
     {
       history_expansion_char = *temp;
-      if (temp[1])
+      if (temp[0] && temp[1])
 	{
 	  history_subst_char = temp[1];
 	  if (temp[2])

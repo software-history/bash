@@ -94,13 +94,10 @@
 #  define HAVE_STRERROR
 #  define VOID_SIGHANDLER
 #  define HAVE_DIRENT
+#  define HAVE_STRCASECMP
 #endif /* sparc && __NetBSD__ */
 
 #if defined (sun) && !defined (M_MACHINE)
-#  if defined (USGr4) || defined (__svr4__) || defined (__SVR4)
-#    define Solaris
-#  endif /* USGr4 || __svr4__ */
-
 /* We aren't currently using GNU Malloc on Suns because of a bug in Sun's
    YP which bites us when Sun free ()'s an already free ()'ed address.
    When Sun fixes their YP, we can start using our winning malloc again. */
@@ -116,32 +113,32 @@
 #  define HAVE_GETGROUPS
 
 /* Check for SunOS4 or greater. */
-#  if defined (HAVE_SHARED_LIBS)
-#    if defined (Solaris)
-#      define M_OS "SunOS5"
-#      define SYSDEP_CFLAGS -DUSGr4 -DUSG -DSolaris -DOPENDIR_NOT_ROBUST \
-			    -DNO_SBRK_DECL -DINT_GROUPS_ARRAY
-#      define EXTRA_LIB_SEARCH_PATH /usr/ccs/lib
-#      if !defined (HAVE_GCC)
-#        define REQUIRED_LIBRARIES -ldl
-#        define SYSDEP_LDFLAGS -Bdynamic
-#      endif /* !HAVE_GCC */
-#      define HAVE_STRERROR
-       /* The following are only available thru the BSD compatability lib. */
-#      undef HAVE_GETWD
-#      undef HAVE_SETLINEBUF
-#    else /* !Solaris */
+#  if defined (SunOS5)
+#    define M_OS "SunOS5"
+#    define SYSDEP_CFLAGS -DUSGr4 -DUSG -DSolaris -DOPENDIR_NOT_ROBUST \
+			  -DNO_SBRK_DECL -DINT_GROUPS_ARRAY
+#    define EXTRA_LIB_SEARCH_PATH /usr/ccs/lib
+#    if !defined (HAVE_GCC)
+#      define REQUIRED_LIBRARIES -ldl
+#      define SYSDEP_LDFLAGS -Bdynamic
+#    endif /* !HAVE_GCC */
+#    define HAVE_STRERROR
+     /* The following are only available thru the BSD compatability lib. */
+#    undef HAVE_GETWD
+#    undef HAVE_SETLINEBUF
+#  else /* !SunOS5 */
+#    if defined (SunOS4)
 #      define M_OS "SunOS4"
 #      define SYSDEP_CFLAGS -DBSD_GETPGRP -DOPENDIR_NOT_ROBUST -DTERMIOS_LDISC \
 			    -DINT_GROUPS_ARRAY
 #      define HAVE_DIRENT
-#    endif /* !Solaris */
-#  else /* !HAVE_SHARED_LIBS */
-#    if !defined (sparc) && !defined (__sparc__)
-#      undef VOID_SIGHANDLER
-#    endif /* !sparc */
-#    define M_OS "SunOS3"
-#  endif /* !HAVE_SHARED_LIBS */
+#    else /* !SunOS4 */
+#      if !defined (sparc) && !defined (__sparc__)
+#        undef VOID_SIGHANDLER
+#      endif /* !sparc */
+#      define M_OS "SunOS3"
+#    endif /* !SunOS4 */
+#  endif /* !SunOS5 */
 
 #  if defined (mc68010)
 #    define sun2
@@ -165,7 +162,7 @@
 #    endif
 #  endif /* i386 */
 
-#endif /* sun */
+#endif /* sun && !M_MACHINE */
 
 /* **************************************************************** */
 /*								    */
@@ -231,6 +228,12 @@
 #  define HAVE_GETGROUPS
 #  define USE_VFPRINTF_EMULATION
 #endif /* vax && !ultrix */
+
+/* **************************************************************** */
+/*								    */
+/*		Machines with MIPSco processors			    */
+/*								    */
+/* **************************************************************** */
 
 /* **************************************** */
 /*					    */
@@ -395,6 +398,44 @@
 #  define HAVE_GETGROUPS
 #endif /* sony */
 
+/* ******************************* */
+/*			           */
+/*  Ardent Titan OS v2.2 and later */
+/*			           */
+/* ******************************* */
+#if defined (ardent)
+#  define M_MACHINE "Ardent Titan"
+#  define M_OS "Bsd"
+#  if defined (titan)
+#    undef HAVE_GETGROUPS
+#  else
+#    define HAVE_GETGROUPS
+#  endif /* !titan */
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_SETLINEBUF
+#  define SYSDEP_CFLAGS -43 -w
+#  define SYSDEP_LDFLAGS -43
+#  undef HAVE_ALLOCA
+#  undef USE_GNU_MALLOC
+#  undef HAVE_VFPRINTF
+#  undef HAVE_DIRENT_H
+#endif /* ardent */
+
+/* ************************ */
+/*			    */
+/*	  Stardent	    */
+/*			    */
+/* ************************ */
+#if defined (stardent) && !defined (M_MACHINE)
+#  define M_MACHINE "Stardent"
+#  define M_OS "USG"
+#  define HAVE_SYS_SIGLIST
+#  define USE_TERMCAP_EMULATION
+#  define VOID_SIGHANDLER
+#  undef HAVE_GETWD
+#  undef HAVE_ALLOCA
+#endif /* stardent */
+
 /* ******************************** */
 /*				    */
 /*	   MIPS RISC/os		    */
@@ -494,6 +535,7 @@
 #    define HAVE_DIRENT
 #    define HAVE_VFPRINTF
 #    define VOID_SIGHANDLER
+/* Might need to add -lsocket -linet -lnsl to the list of libraries. */
 #    define REQUIRED_LIBRARIES -lPW -lseq
 #    undef HAVE_GETWD
 #    undef HAVE_RESOURCE
@@ -523,11 +565,15 @@
 #    define HAVE_GETGROUPS
 #    define HAVE_STRERROR
 #    define VOID_SIGHANDLER
+#    if !defined (HAVE_RESOURCE)
+#      define HAVE_RESOURCE
+#    endif
+#    define HAVE_STRCASECMP
 #    undef HAVE_GETWD
 #    undef HAVE_GETCWD
 #    undef USE_GNU_MALLOC
 #    undef HAVE_DIRENT_H
-#    define SYSDEP_CFLAGS -DNeXT DHAVE_RESOURCE -DMKFIFO_MISSING -DRLOGIN_PGRP_BUG
+#    define SYSDEP_CFLAGS -DNeXT -DMKFIFO_MISSING -DRLOGIN_PGRP_BUG
 #  endif
 
 /* Generic 386 clone running Mach (4.3 BSD-compatible). */
@@ -705,6 +751,7 @@
 #    define HAVE_STRERROR
 #    define VOID_SIGHANDLER
 #    define HAVE_DIRENT
+#    define HAVE_STRCASECMP
 #  endif /* !done386 && bsdi */
 
 /* NetBSD running on a 386 or 486. */
@@ -720,6 +767,7 @@
 #    define HAVE_STRERROR
 #    define VOID_SIGHANDLER
 #    define HAVE_DIRENT
+#    define HAVE_STRCASECMP
 #  endif /* !done386 && __NetBSD__ */
 
 /* FreeBSD running on a 386 or 486. */
@@ -735,6 +783,7 @@
 #    define HAVE_STRERROR
 #    define VOID_SIGHANDLER
 #    define HAVE_DIRENT
+#    define HAVE_STRCASECMP
 #  endif /* !done386 && __FreeBSD__ */
 
 /* Jolitz 386BSD running on a 386 or 486. */
@@ -750,6 +799,7 @@
 #    define HAVE_STRERROR
 #    define VOID_SIGHANDLER
 #    define HAVE_DIRENT
+#    define HAVE_STRCASECMP
 #  endif /* !done386 && __386BSD__ */
 
 #  if !defined (done386) && (defined (__linux__) || defined (linux))
@@ -904,10 +954,14 @@
 #  define HAVE_GETGROUPS
 #  define HAVE_STRERROR
 #  define VOID_SIGHANDLER
+#  if !defined (HAVE_RESOURCE)
+#    define HAVE_RESOURCE
+#  endif
+#  define HAVE_STRCASECMP
 #  undef HAVE_GETWD
 #  undef HAVE_GETCWD
 #  undef HAVE_DIRENT_H
-#  define SYSDEP_CFLAGS -DHAVE_RESOURCE -DMKFIFO_MISSING -DRLOGIN_PGRP_BUG
+#  define SYSDEP_CFLAGS -DMKFIFO_MISSING -DRLOGIN_PGRP_BUG
 #  undef USE_GNU_MALLOC
 #endif /* NeXT */
 
@@ -925,6 +979,7 @@
 #  define HAVE_STRERROR
 #  define HAVE_VFPRINTF
 #  define VOID_SIGHANDLER
+#  define HAVE_STRCASECMP
 #  define SYSDEP_CFLAGS -DHAVE_GETDTABLESIZE -DHAVE_BCOPY -DHAVE_RESOURCE
 #  undef HAVE_ALLOCA
 #endif /* hp9000 && __BSD_4_4__ */
@@ -1654,7 +1709,9 @@ MAKE = make
 #  define VOID_SIGHANDLER
 #  define HAVE_GETGROUPS
 #  undef HAVE_GETWD
-#  undef HAVE_GETCWD
+#  if !defined (USGr4)
+#    undef HAVE_GETCWD
+#  endif
 #  undef HAVE_ALLOCA
 #endif /* m88k && M88100 */
 
@@ -1693,41 +1750,6 @@ MAKE = make
 #  define VOID_SIGHANDLER
 #  undef HAVE_GETWD
 #endif /* tower32 */
-
-/* ************************ */
-/*			    */
-/*    Ardent Titan OS v2.2  */
-/*			    */
-/* ************************ */
-#if defined (ardent)
-#  define M_MACHINE "Ardent Titan"
-#  define M_OS "Bsd"
-#  if !defined (titan)
-#    define HAVE_GETGROUPS
-#  endif /* !titan */
-#  define HAVE_SYS_SIGLIST
-#  define HAVE_SETLINEBUF
-#  define SYSDEP_CFLAGS -43 -w
-#  define SYSDEP_LDFLAGS -43
-#  undef HAVE_ALLOCA
-#  undef USE_GNU_MALLOC
-#  undef HAVE_VFPRINTF
-#endif /* ardent */
-
-/* ************************ */
-/*			    */
-/*	  Stardent	    */
-/*			    */
-/* ************************ */
-#if defined (stardent) && !defined (M_MACHINE)
-#  define M_MACHINE "Stardent"
-#  define M_OS "USG"
-#  define HAVE_SYS_SIGLIST
-#  define USE_TERMCAP_EMULATION
-#  define VOID_SIGHANDLER
-#  undef HAVE_GETWD
-#  undef HAVE_ALLOCA
-#endif /* stardent */
 
 /* ************************ */
 /*			    */
@@ -1789,7 +1811,11 @@ MAKE = make
 #  endif
 #  if defined (CrayYMP) && !defined (M_MACHINE)
 #    define M_MACHINE "CrayYMP"
-#    define CRAY_STACK -DCRAY_STACKSEG_END=getb67
+#    if RELEASE_LEVEL >= 7000
+#      define CRAY_STACK -DCRAY_STACKSEG_END=GETB67
+#    else
+#      define CRAY_STACK -DCRAY_STACKSEG_END=getb67
+#    endif /* RELEASE_LEVEL < 7000 */
 #  endif
 #  if !defined (M_MACHINE)
 #    define M_MACHINE "Cray"
@@ -2004,6 +2030,11 @@ MAKE = make
 /* Define HAVE_STRERROR if your system supplies a definition for strerror ()
    in the C library, or a macro in a header file. */
 /* #define HAVE_STRERROR */
+
+/* Define HAVE_STRCASECMPif your system supplies definitions for the caseless
+   string comparison functions strcasecmp and strncasemp in libc or one of
+   the system header files. */
+/* #define HAVE_STRCASECMP */
 
 /* Define HAVE_DIRENT if you have the dirent library and a definition of
    struct dirent.  If not, the BSD directory reading library and struct

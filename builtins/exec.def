@@ -40,6 +40,7 @@ $END
 
 #include "../execute_cmd.h"
 #include "common.h"
+#include "../flags.h"
 
 /* Not all systems declare ERRNO in errno.h... and some systems #define it! */
 #if !defined (errno)

@@ -162,9 +162,10 @@ get_standard_path ()
   char *p;
   size_t len;
 
-  len = (long) confstr (_CS_PATH, (char *)NULL, (size_t)0);
+  len = (size_t)confstr (_CS_PATH, (char *)NULL, (size_t)0);
   p = xmalloc ((int)len + 2);
-  (void) confstr (_CS_PATH, p, len);
+  *p = '\0';
+  confstr (_CS_PATH, p, len);
   return (p);
 #else /* !_CSPATH || hpux_7 || NetBSD */
 #  if defined (CS_PATH)

@@ -4,10 +4,18 @@
 # helping to describe the operating system features.  We just take guesses
 # by looking at random files.
 
-if [ "$1" ]; then
+case "$1" in
+-s)	shift; srcdir=$1; shift ;;
+esac
+
+if [ -n "$1" ]; then
   sysdefs=$1
 else
   sysdefs=./sysdefs.h
+fi
+
+if [ -z "$srcdir" ]; then
+	srcdir=.
 fi
 
 rm -f $sysdefs
@@ -56,13 +64,12 @@ esac
 
 # Test for shared libraries (this is pretty sVr4ish).
 if [ -f /usr/ccs/lib/libc.so ]; then
-  if [ "$SHLIB" = "" ]; then
-    SHLIB=-DHAVE_SHARED_LIBS
-    echo ""					>>$sysdefs
-    echo "#if !defined (HAVE_SHARED_LIBS)"	>>$sysdefs
-    echo "#  define HAVE_SHARED_LIBS"		>>$sysdefs
-    echo "#endif /* HAVE_SHARED_LIBS */"	>>$sysdefs
-  fi
+  SHLIB=-DHAVE_SHARED_LIBS
+  echo ""					>>$sysdefs
+  echo "#if !defined (HAVE_SHARED_LIBS)"	>>$sysdefs
+  echo "#  define HAVE_SHARED_LIBS"		>>$sysdefs
+  echo "#endif /* HAVE_SHARED_LIBS */"	>>$sysdefs
+
   SYSDEF=USGr4
 fi
 
@@ -465,7 +472,7 @@ fi
 # If this system's cpp might not like `/**/#' in cpp-Makefile, make an
 # alternate ansi-style cpp-Makefile.
 if [ "$MAKE_ANSI" = "true" ]; then
-   cat cpp-Makefile | grep -v '/\*\*/' >ansi-Makefile
+   grep -v '/\*\*/' ${srcdir}/cpp-Makefile >ansi-Makefile
 fi
 
 # These should be the last 2 lines in this file!

@@ -23,7 +23,11 @@
 #ifndef _KEYMAPS_H_
 #define _KEYMAPS_H_
 
-#include <readline/chardefs.h>
+#if defined (READLINE_LIBRARY)
+#  include "chardefs.h"
+#else
+#  include <readline/chardefs.h>
+#endif
 
 #if !defined (__FUNCTION_DEF)
 #  define __FUNCTION_DEF
