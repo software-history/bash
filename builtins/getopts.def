@@ -158,7 +158,7 @@ dogetopts (argc, argv)
     {
       register int i;
 
-      for (i = 0; dollar_vars[i]; i++);
+      for (i = 0; i < 10 && dollar_vars[i]; i++);
       ret = sh_getopt (i, dollar_vars, optstr);
     }
   else
@@ -167,10 +167,10 @@ dogetopts (argc, argv)
       register WORD_LIST *words;
       char **v;
 
-      for (i = 0; dollar_vars[i]; i++);
+      for (i = 0; i < 10 && dollar_vars[i]; i++);
       for (words = rest_of_args; words; words = words->next, i++);
       v = (char **)xmalloc ((i + 1) * sizeof (char *));
-      for (i = 0; dollar_vars[i]; i++)
+      for (i = 0; i < 10 && dollar_vars[i]; i++)
         v[i] = dollar_vars[i];
       for (words = rest_of_args; words; words = words->next, i++)
         v[i] = words->word->word;

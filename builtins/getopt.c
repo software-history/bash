@@ -93,8 +93,8 @@ int sh_optopt = '?';
    ARGV-element, is returned in `sh_optarg'. */
 
 /* 1003.2 specifies the format of this message.  */
-#define BADOPT(c)  fprintf (stderr, "%s: illegal option -- %c\n", argv[0], c)
-#define NEEDARG(c) fprintf (stderr, "%s: option requires an argument -- %c\n", argv[0], c)
+#define BADOPT(x)  fprintf (stderr, "%s: illegal option -- %c\n", argv[0], x)
+#define NEEDARG(x) fprintf (stderr, "%s: option requires an argument -- %c\n", argv[0], x)
 
 int
 sh_getopt (argc, argv, optstring)

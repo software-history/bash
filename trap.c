@@ -457,6 +457,10 @@ ignore_signal (sig)
 int
 run_exit_trap ()
 {
+  int old_exit_value;
+
+  old_exit_value = last_command_exit_value;
+
   /* Run the trap only if signal 0 is trapped and not ignored. */
   if ((sigmodes[0] & SIG_TRAPPED) &&
       (trap_list[0] != (char *)IGNORE_SIG) &&
@@ -473,8 +477,13 @@ run_exit_trap ()
 
       if (code == 0)
 	parse_and_execute (trap_command, "trap", 0);
+      else if (code == EXITPROG)
+	return (last_command_exit_value);
+      else
+	return (old_exit_value);
     }
-  return (last_command_exit_value);
+
+  return (old_exit_value);
 }
 
 /* Set the handler signal SIG to the original and free any trap

@@ -96,7 +96,23 @@
 #  define VOID_SIGHANDLER
 #  define HAVE_DIRENT
 #  define HAVE_STRCASECMP
+#  undef USE_GNU_MALLOC
 #endif /* sparc && __NetBSD__ */
+
+/* BSDI BSD/OS running on a sparc. */
+#if defined (sparc) && defined (__bsdi__)
+#  define M_MACHINE "sun4"
+#  define M_OS "BSD_OS"
+#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DRLIMTYPE=quad_t
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_SETLINEBUF
+#  define HAVE_GETGROUPS
+#  define HAVE_VFPRINTF
+#  define HAVE_STRERROR
+#  define VOID_SIGHANDLER
+#  define HAVE_DIRENT
+#  define HAVE_STRCASECMP
+#endif /* sparc && __bsdi__ */
 
 #if defined (sun) && !defined (M_MACHINE)
 /* We aren't currently using GNU Malloc on Suns because of a bug in Sun's
@@ -193,6 +209,26 @@
 #  undef HAVE_ALLOCA
 #  undef USE_GNU_MALLOC
 #endif /* __alpha || alpha */
+
+/* ************************ */
+/*                          */
+/*  NetBSD/pmax (DEC mips)  */
+/*                          */  
+/* ************************ */
+#if defined(mips) && defined(__NetBSD__)
+#  define M_MACHINE "mips"   
+#  define M_OS "NetBSD"
+#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY \
+                       -DRLIMTYPE=quad_t
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_SETLINEBUF
+#  define HAVE_GETGROUPS
+#  define HAVE_VFPRINTF
+#  define HAVE_STRERROR
+#  define VOID_SIGHANDLER
+#  define HAVE_DIRENT
+#  define HAVE_STRCASECMP
+#endif /* mips && __NetBSD__ */
 
 /* ************************ */
 /*			    */
@@ -308,6 +344,7 @@
 		       -DHAVE_SOCKETS
 #  endif /* !Irix5 */
 #  define SYSDEP_CFLAGS SGI_CFLAGS MACHINE_CFLAGS ANSIC
+#  define SYSDEP_LDFLAGS MACHINE_CFLAGS
 #endif  /* sgi */
 
 /* ************************ */
@@ -491,6 +528,7 @@
 #  if !defined (HAVE_GCC)
 #    undef MACHINE_CFLAGS
 #    define MACHINE_CFLAGS -Wf,-XNl3072 -systype bsd43
+#    define SYSDEP_LDFLAGS -systype bsd43
 #  endif /* !HAVE_GCC */
 #  define SYSDEP_CFLAGS MACHINE_CFLAGS MIPS_CFLAGS
 #  define HAVE_SYS_SIGLIST
@@ -731,11 +769,11 @@
 #    define M_MACHINE "i386"
 #    define M_OS "SCO"
 #    define SCO_CFLAGS -DUSG -DUSGr3 -DPGRP_PIPE
-#    if defined (SCOv4)
+#    if defined (SCOv4) || defined (SCOv5)
 #      define SYSDEP_CFLAGS SCO_CFLAGS -DWAITPID_BROKEN
-#    else /* !SCOv4 */
+#    else /* !SCOv4 && !SCOv5 */
 #      define SYSDEP_CFLAGS SCO_CFLAGS -DOPENDIR_NOT_ROBUST -DMUST_UNBLOCK_CHILD
-#    endif /* !SCOv4 */
+#    endif /* !SCOv4 && !SCOv5 */
 #    define HAVE_VFPRINTF
 #    define VOID_SIGHANDLER
 #    define HAVE_GETGROUPS
@@ -946,6 +984,30 @@
 #  undef HAVE_ALLOCA
 #endif /* alliant */
 
+/* ********************* */
+/*                       */
+/*      Linux/m68k       */
+/*                       */
+/* ********************* */
+#if defined (mc68000) && (defined (__linux__) || defined (linux))
+#  define M_MACHINE "m68k"
+#  define M_OS "Linux"
+#  define SYSDEP_CFLAGS -DHAVE_BCOPY -DHAVE_GETPW_DECLS -DHAVE_GETHOSTNAME
+#  define REQUIRED_LIBRARIES
+#  define HAVE_GETGROUPS
+#  define HAVE_STRERROR
+#  define VOID_SIGHANDLER
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_VFPRINTF
+#  define HAVE_VARARGS_H
+#  if defined (__GNUC__)
+#    define HAVE_FIXED_INCLUDES
+#  endif /* __GNUC__ */
+#  undef USE_GNU_MALLOC
+#  undef HAVE_SETLINEBUF
+#  define HAVE_STRCASECMP
+#endif  /* mc68000 && __linux__ */
+
 /* **************************************************************** */
 /*                                                                  */
 /*            Motorola Delta series running System V R3V6/7         */
@@ -1151,6 +1213,20 @@
 #      undef USE_GNU_MALLOC
 #      undef HAVE_RESOURCE
 #      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS -DHAVE_GETHOSTNAME HPUX_ANSI
+#    endif /* HPUX_9 */
+
+#    if defined (HPUX_10)
+#      define M_OS "hpux_10"
+#      if !defined (__GNUC__)
+#        undef HAVE_ALLOCA
+#	 define HPUX_ANSI +O3 -Ae
+#      else
+#	 define HPUX_ANSI
+#      endif
+#      undef HAVE_GETWD
+#      undef USE_GNU_MALLOC
+#      undef HAVE_RESOURCE
+#      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS -DHAVE_GETHOSTNAME -DBSD_GETPGRP HPUX_ANSI
 #    endif /* HPUX_9 */
 
 #  endif /* !HPUX_USG */

@@ -1029,9 +1029,9 @@ dup2 (fd1, fd2)
  *
  */
 
-#if !defined (USG) && !defined (HPUX)
+#if !defined (USG) && !defined (HPUX) && !defined (HAVE_GETDTABLESIZE)
 #  define HAVE_GETDTABLESIZE
-#endif /* !USG && !HPUX */
+#endif /* !USG && !HPUX && !HAVE_GETDTABLESIZE */
 
 #if defined (hppa) && (defined (hpux_8) || defined (hpux_9))
 #  undef HAVE_GETDTABLESIZE
@@ -1124,6 +1124,9 @@ polite_directory_format (name)
 }
 
 #if defined (NO_READ_RESTART_ON_SIGNAL)
+static char localbuf[128];
+static int local_index = 0, local_bufused = 0;
+
 /* Posix and USG systems do not guarantee to restart read () if it is
    interrupted by a signal.  We do the read ourselves, and restart it
    if it returns EINTR. */
@@ -1131,9 +1134,6 @@ int
 getc_with_restart (stream)
      FILE *stream;
 {
-  static char localbuf[128];
-  static int local_index = 0, local_bufused = 0;
-
   /* Try local buffering to reduce the number of read(2) calls. */
   if (local_index == local_bufused || local_bufused == 0)
     {
@@ -1152,6 +1152,17 @@ getc_with_restart (stream)
     }
   return (localbuf[local_index++]);
 }
+
+int
+ungetc_with_restart (c, fp)
+     int c;
+     FILE *fp;
+{
+  if (local_index == 0 || local_bufused == 0 || c == EOF)
+    return EOF;
+  return (localbuf[--local_index] = c);
+}
+
 #endif /* NO_READ_RESTART_ON_SIGNAL */
 
 #if defined (USG) || defined (AIX) || (defined (_POSIX_VERSION) && defined (Ultrix))

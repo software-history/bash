@@ -263,6 +263,8 @@ fc_builtin (list)
   /* This is the second form of the command (the list-or-edit-and-rerun
      form). */
   hlist = history_list ();
+  if (hlist == 0)
+    return (EXECUTION_SUCCESS);
   for (i = 0; hlist[i]; i++);
 
   /* With the Bash implementation of history, the current command line

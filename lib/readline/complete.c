@@ -468,7 +468,7 @@ rl_complete_internal (what_to_do)
 	    }
 	}
 
-      if (rl_point == end && found_quote == 0)
+      if (rl_point == end && quote_char == '\0')
 	{
 	  int quoted = 0;
 	  /* We didn't find an unclosed quoted substring upon which to do
@@ -633,7 +633,16 @@ rl_complete_internal (what_to_do)
 	     munge the array, deleting matches as it desires. */
 	  if (rl_ignore_some_completions_function &&
 	      our_func == (Function *)filename_completion_function)
-	    (void)(*rl_ignore_some_completions_function)(matches);
+	    {
+	      (void)(*rl_ignore_some_completions_function)(matches);
+	      if (matches == 0 || matches[0] == 0)
+		{
+		  if (matches)
+		    free (matches);
+		  ding ();
+		  return;
+		}
+	    }
 
 	  /* If we are doing completion on quoted substrings, and any matches
 	     contain any of the completer_word_break_characters, then auto-

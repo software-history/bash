@@ -583,6 +583,7 @@ vi_edit_and_execute_command (count, c)
       command = savestring (VI_EDIT_COMMAND);
     }
   parse_and_execute (command, "v", -1);
+  rl_line_buffer[0] = '\0';	/* erase pre-edited command */
 }
 #endif /* VI_MODE */
 
@@ -1378,35 +1379,64 @@ _ignore_names (names, name_func)
      char **names;
      Function *name_func;
 {
-  char **p;
-  int idx;
+  char **newnames;
+  int idx, nidx;
 
-  for (p = names + 1, idx = -1; *p; p++)
+  /* If there is only one completion, see if it is acceptable.  If it is
+     not, free it up.  In any case, short-circuit and return.  This is a
+     special case because names[0] is not the prefix of the list of names
+     if there is only one completion; it is the completion itself. */
+  if (names[1] == (char *)0)
     {
-      if ((*name_func) (*p))
-	{
-	  if (idx == -1)	/* First match found. */
-	    idx = p - names;
-	  else
-	    return;		/* Too many matches. */
-	}
+      if ((*name_func) (names[0]) == 0)
+        {
+          free (names[0]);
+          names[0] = (char *)NULL;
+        }
+      return;
     }
-  
+
+  /* Allocate space for array to hold list of pointers to matching
+     filenames.  The pointers are copied back to NAMES when done. */
+  for (nidx = 1; names[nidx]; nidx++)
+    ;
+  newnames = (char **)xmalloc ((nidx + 1) * (sizeof (char *)));
+
+  newnames[0] = names[0];
+  for (idx = nidx = 1; names[idx]; idx++)
+    {
+      if ((*name_func) (names[idx]))
+	newnames[nidx++] = names[idx];
+      else
+	free (names[idx]);
+    }
+
+  newnames[nidx] = (char *)NULL;
+
   /* If none are acceptable then let the completer handle it. */
-  if (idx == -1)
-    return;
-
-  /* Delete all non-matching elements. */
-  free (names[0]); 
-  for (p = names + 1; *p; p++)
+  if (nidx == 1)
     {
-      if (idx == (p - names))
-	names[0] = *p;
-      else 
-	free (*p);
-
-      *p = NULL;
+      free (names[0]);
+      names[0] = (char *)NULL;
+      free (newnames);
+      return;
     }
+
+  /* If only one is acceptable, copy it to names[0] and return. */
+  if (nidx == 2)
+    {
+      free (names[0]);
+      names[0] = newnames[1];
+      names[1] = (char *)NULL;
+      free (newnames);
+      return;
+    }
+      
+  /* Copy the acceptable names back to NAMES, set the new array end,
+     and return. */
+  for (nidx = 1; newnames[nidx]; nidx++)
+    names[nidx] = newnames[nidx];
+  names[nidx] = (char *)NULL;
 }
 
 static void

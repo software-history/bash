@@ -1,3 +1,5 @@
+This is the Bash FAQ, version 1.2, for Bash version 1.14.6.
+
 This document contains a set of frequently-asked questions concerning
 Bash, the GNU Bourne-Again Shell.  Bash is a freely-available command
 interpreter with advanced features for both interactive use and shell
@@ -6,7 +8,7 @@ programming.
 Another good source of basic information about shells is the collection
 of FAQ articles periodically posted to comp.unix.shell.
 
-Questions and comments concerning the document should be set to
+Questions and comments concerning this document should be set to
 chet@po.cwru.edu.
 
 Contents:
@@ -32,8 +34,8 @@ Contents:
     still invoke the command from within the function?
 18) When I have terminal escape sequences in my prompt, why does bash
     wrap lines at the wrong column?
-19) I built bash on Solaris 2.  Why do globbing expansions chop off the
-    first few characters of each filename?
+19) I built bash on Solaris 2.  Why do globbing expansions and filename
+    completion chop off the first few characters of each filename?
 20) Why doesn't bash treat brace expansions exactly like csh?
 21) Why does bash dump core after I interrupt username completion?
 22) I'm running SVR4.2.  Why is the line erased every time I type `@'?
@@ -47,12 +49,14 @@ Contents:
     in arguments to `echo'.  Bash doesn't interpret these characters.  Why
     not, and how can I make it understand them?
 27) Why doesn't bash have csh variable modifiers?
-28) How do I report bugs in bash, and where should I look for fixes and
+28) Why does bash report syntax errors when my C News scripts use a
+    redirection before a subshell command?
+29) How do I report bugs in bash, and where should I look for fixes and
     advice?
-29) What kind of bash documentation is there?
-30) What's coming in future versions?
-31) What's on the bash `wish list'?
-32) When will the next release appear?
+30) What kind of bash documentation is there?
+31) What's coming in future versions?
+32) What's on the bash `wish list'?
+33) When will the next release appear?
 
 1)  What is it?
 
@@ -66,11 +70,15 @@ toward interactive use include command line editing, command
 history, job control, aliases, and prompt expansion.  Programming
 features include additional variable expansions, shell
 arithmetic, and a number of variables and options to control
-shell behavior. 
+shell behavior.
+
+Bash was originally written by Brian Fox of the Free Software
+Foundation.  The current developer and maintainer is Chet Ramey
+of Case Western Reserve University.
 
 2)  What's the latest version?
 
-The latest version is 1.14.4, first made available on April 21, 1995.
+The latest version is 1.14.6, first made available on December 19, 1995.
 
 3)  Where can I get it?
 
@@ -78,10 +86,10 @@ Bash is the GNU project's shell, and so is available from the
 master GNU archive site, prep.ai.mit.edu, and its mirrors.  The
 latest version is also available for FTP from slc2.ins.cwru.edu,
 the maintainer's machine.  The following URLs tell how to get
-version 1.14.4:
+version 1.14.6:
 
-ftp://prep.ai.mit.edu/pub/gnu/bash-1.14.4.tar.gz
-ftp://slc2.ins.cwru.edu/pub/dist/bash-1.14.4.tar.gz
+ftp://prep.ai.mit.edu/pub/gnu/bash-1.14.6.tar.gz
+ftp://slc2.ins.cwru.edu/pub/dist/bash-1.14.6.tar.gz
 
 4)  What's the `Posix 1003.2 standard'?
 
@@ -346,7 +354,7 @@ typeset +f		declare -f |
 			     sed -n 's:^declare -[a-z]* \([^ ]*\).*$:\1:p'
 cd, print, whence	function subsitutes in examples/functions/kshenv
 autoloaded functions	examples/functions/autoload is the same as typeset -fu
-read var?prompt		[ -t 0 ] && echo -n prompt; read var
+read var?prompt		[ -t 0 ] && echo -n prompt >&2; read var
 
 13) Why is the bash builtin `test' slightly different from /bin/test?
 
@@ -408,7 +416,7 @@ For old BSD-style systems, you can use
 
 	stty pass8
 
-you may also need
+You may also need
 
 	stty even odd
 
@@ -477,8 +485,8 @@ characters in the prompt strings take up no screen space.
 Use the \[ escape to begin a sequence of non-printing characters,
 and the \] escape to signal the end of such a sequence. 
 
-19) I built bash on Solaris 2.  Why do globbing expansions chop off the
-    first few characters of each filename?
+19) I built bash on Solaris 2.  Why do globbing expansions and filename
+    completion chop off the first few characters of each filename?
 
 This is the consequence of building bash on SunOS 5 and linking
 with the libraries in /usr/ucblib, but using the definitions
@@ -488,9 +496,14 @@ The actual conflict is between the dirent structure in
 /usr/include/dirent.h and the struct returned by the version of
 `readdir' in libucb.a (a 4.3-BSD style `struct direct'). 
 
-Make sure you've got /bin ahead of /usr/ucb in your $PATH when
-building bash.  This will ensure that you use /bin/cc or acc
-instead of /usr/ucb/cc and that you link with libc before libucb. 
+Make sure you've got /usr/ccs/bin ahead of /usr/ucb in your $PATH
+when building bash.  This will ensure that you use /usr/ccs/bin/cc
+or acc instead of /usr/ucb/cc and that you link with libc before
+libucb.
+
+If you have installed the Sun C compiler, you may also need to
+put /usr/ccs/bin and /opt/SUNWspro/bin into your $PATH before
+/usr/ucb.
 
 20) Why doesn't bash treat brace expansions exactly like csh?
 
@@ -661,7 +674,25 @@ Given
 	$b:e			${b##*.}	   xxx
 
 
-28) How do I report bugs in bash, and where should I look for fixes and
+28) Why does bash report syntax errors when my C News scripts use a
+    redirection before a subshell command?
+
+The actual command in question is something like
+
+	< file ( command )
+
+According to the grammar given in the Posix.2 standard, this construct
+is, in fact, a syntax error.  Redirections may only precede `simple
+commands'.  A subshell construct such as the above is one of the shell's
+`compound commands'.  A redirection may only follow a compound command.
+
+The file CWRU/sh-redir-hack in the 1.14.6 distribution is an (unofficial)
+patch to parse.y that will modify the grammar to support this construct.
+Note that if you apply this, you must recompile with -DREDIRECTION_HACK.
+This introduces a large number of reduce/reduce conflicts into the shell
+grammar.
+
+29) How do I report bugs in bash, and where should I look for fixes and
     advice?
 
 Use the `bashbug' script to report bugs.  It is built and
@@ -679,7 +710,7 @@ and problems also take place there.
 To reach the bash maintainers directly, send mail to
 bash-maintainers@prep.ai.mit.edu.
 
-29) What kind of bash documentation is there?
+30) What kind of bash documentation is there?
 
 First, look in the documentation directory in the bash distribution.
 It should contain the following files:
@@ -701,7 +732,7 @@ Cameron Newham is in the midst of writing a book on bash, to be
 published by O'Reilly and Associates.  Look for it sometime this
 year.
 
-30) What's coming in future versions?
+31) What's coming in future versions?
 
 There will be no new features in future releases of version 1.14.
 
@@ -735,7 +766,7 @@ grammar tighter and smaller (66 reduce-reduce conflicts gone)
 lots of code now smaller and faster
 test suite greatly expanded
 
-31) What's on the bash `wish list'?
+32) What's on the bash `wish list'?
 
 internationalization with a variable expansion to translate a string
 	according to a particular message catalog
@@ -748,9 +779,17 @@ a bash debugger
 
 Much of this will not be in bash-2.0.
 
-32) When will the next release appear?
+33) When will the next release appear?
 
-There will probably be a 1.14.5 release to coincide with the next GNU
-source CD.  That will be the last release for version 1.14.
+Version 1.14.6 will probably be the last release for version 1.14.
 
-The next version will appear sometime in 1995.  Never make predictions.
+The next version will appear sometime in 1996.  Never make predictions.
+
+
+This document is copyright Chester Ramey, 1995.
+
+Permission is hereby granted, without written agreement and
+without license or royalty fees, to use, copy, and distribute
+this document for any purpose, provided that the above copyright
+notice appears in all copies of this document and that the
+contents of this document remain unaltered.

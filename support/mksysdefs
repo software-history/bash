@@ -257,6 +257,7 @@ fi
 if [ "$SYSDEF" = "" -a -f /bin/uname ]; then
   case `/bin/uname -X 2>/dev/null | grep '^Release' 2>/dev/null` in
     *3.2v4.*) SYSDEF=SCOv4 ;;
+    *3.2v5.*) SYSDEF=SCOv5 ;;
 	   *) SYSDEF=SCO ;;
   esac
 fi

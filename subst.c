@@ -176,7 +176,12 @@ string_extract_verbatim (string, sindex, charlist)
   char *temp;
 
   if (charlist[0] == '\'' && !charlist[1])
-    return (string_extract_single_quoted (string, sindex));
+    {
+      temp = string_extract_single_quoted (string, sindex);
+      i = *sindex - 1;
+      *sindex = i;
+      return (temp);
+    }
 
   for (i = *sindex; (c = string[i]); i++)
     {
@@ -723,6 +728,7 @@ char_is_quoted (string, eindex)
           free (temp);
           if (i > eindex)
             return 1;
+          i--;
         }
       else if (string[i] == '"')
         {
@@ -731,6 +737,7 @@ char_is_quoted (string, eindex)
           free (temp);
           if (i > eindex)
             return 1;
+          i--;
         }
       else if (string[i] == '\\')
         {
@@ -917,8 +924,35 @@ string_list_dollar_star (list)
    quoted null characters in the middle or at the ends of strings because
    of how expand_word_internal works.  remove_quoted_nulls () simply
    turns STRING into an empty string iff it only consists of a quoted null. */
+/*
 #define remove_quoted_nulls(string) \
   do { if (QUOTED_NULL (string)) string[0] ='\0'; } while (0)
+*/
+static void
+remove_quoted_nulls (string)
+     char *string;
+{
+  char *nstr, *s, *p;
+
+  nstr = savestring (string);
+  nstr[0] = '\0';
+  for (p = nstr, s = string; *s; s++)
+    {
+      if (*s == CTLESC)
+	{
+	  *p++ = *s++;  /* CTLESC */
+	  if (*s == 0)
+	    break;
+	  *p++ = *s;    /* quoted char */
+	  continue;
+	}
+      if (*s == CTLNUL)
+	continue;
+      *p++ = *s;
+    }
+  *p = '\0';
+  strcpy (string, nstr);
+}
 
 /* Perform quoted null character removal on each element of LIST.
    This modifies LIST. */
@@ -1816,7 +1850,7 @@ make_named_pipe ()
   char *tname;
 
   tname = mktemp (savestring ("/tmp/sh-np-XXXXXX"));
-  if (mkfifo (tname, 0666) < 0)
+  if (mkfifo (tname, 0600) < 0)
     {
       free (tname);
       return ((char *)NULL);
@@ -1856,19 +1890,17 @@ add_fifo_list (fd)
 {
   if (!dev_fd_list || fd >= totfds)
     {
-      int zero;
+      int ofds;
 
+      ofds = totfds;
       totfds = getdtablesize ();
       if (totfds < 0 || totfds > 256)
 	totfds = 256;
       if (fd > totfds)
 	totfds = fd + 2;
 
-      zero = dev_fd_list == (char *) NULL;
       dev_fd_list = xrealloc (dev_fd_list, totfds);
-      if (zero)
-	bzero (dev_fd_list, totfds);
-      /* XXX - should zero out new portion of list here - XXX */
+      bzero (dev_fd_list + ofds, totfds - ofds);
     }
 
   dev_fd_list[fd] = 1;
@@ -2465,6 +2497,12 @@ parameter_brace_expand_rhs (name, value, c, quoted)
     {
       temp = string_list (l);
       dispose_words (l);
+    }
+  else if (lquote)
+    {
+      temp = xmalloc (2);
+      temp[0] = CTLNUL;
+      temp[1] = '\0';
     }
   else
     temp = (char *)NULL;

@@ -2163,7 +2163,11 @@ static int
 yy_stream_unget (c)
      int c;
 {
+#if defined (NO_READ_RESTART_ON_SIGNAL)
+  return (ungetc_with_restart (c, bash_input.location.file));
+#else
   return (ungetc (c, bash_input.location.file));
+#endif
 }
 
 void
@@ -2927,6 +2931,9 @@ static int open_brace_awaiting_satisfaction = 0;
 \
 	      if (word_token_alist[i].token == '{') \
 		open_brace_awaiting_satisfaction++; \
+\
+	      if (word_token_alist[i].token == '}' && open_brace_awaiting_satisfaction) \
+		open_brace_awaiting_satisfaction--; \
 \
 	      return (word_token_alist[i].token); \
 	    } \

@@ -332,6 +332,8 @@ history_search_internal (string, direction, anchored)
   reverse = (direction < 0);
 
   /* Take care of trivial cases first. */
+  if (string == 0 || *string == '\0')
+    return (-1);
 
   if (!history_length || ((i == history_length) && !reverse))
     return (-1);

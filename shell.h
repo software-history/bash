@@ -93,7 +93,7 @@ struct fd_bitmap {
 #define FD_BITMAP_SIZE 32
 
 #define CTLESC '\001'
-#define CTLNUL '\002'
+#define CTLNUL '\177'
 
 /* Information about the current user. */
 struct user_info {
