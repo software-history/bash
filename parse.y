@@ -860,7 +860,7 @@ yy_readline_get ()
     }
   else
     {
-      int c = current_readline_line[current_readline_line_index++];
+      int c = (unsigned char)current_readline_line[current_readline_line_index++];
       return (c);
     }
 }
@@ -904,7 +904,7 @@ with_input_from_stdin ()
 static int
 yy_string_get ()
 {
-  register char *string;
+  register unsigned char *string;
   register int c;
 
   string = bash_input.location.string;
@@ -952,9 +952,9 @@ yy_stream_get ()
 
   if (bash_input.location.file)
 #if defined (NO_READ_RESTART_ON_SIGNAL)
-    result = getc_with_restart (bash_input.location.file);
+    result = (unsigned char)getc_with_restart (bash_input.location.file);
 #else
-    result = getc (bash_input.location.file);
+    result = (unsigned char)getc (bash_input.location.file);
 #endif /* !NO_READ_RESTART_ON_SIGNAL */
   return (result);
 }

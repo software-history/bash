@@ -952,6 +952,7 @@ remove_quoted_nulls (string)
     }
   *p = '\0';
   strcpy (string, nstr);
+  free (nstr);
 }
 
 /* Perform quoted null character removal on each element of LIST.
