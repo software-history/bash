@@ -218,13 +218,29 @@ declare_internal (list, local_var)
 	  else
 	    {
 	      SHELL_VAR *find_function (), *funvar;
+
 	      funvar = find_function (name);
 
 	      if (funvar)
 		{
-		  char *result = named_function_string
-		    (name, (COMMAND *)function_cell (funvar), 1);
-		  printf ("%s\n", result);
+		  if (readonly_p (funvar) && (flags_off & att_readonly))
+		    {
+		      builtin_error ("%s: readonly function", name);
+		      any_failed++;
+		      NEXT_VARIABLE ();
+		    }
+
+		  if (flags_on == att_function && flags_off == 0)
+		    {
+		      char *result = named_function_string
+				(name, (COMMAND *)function_cell (funvar), 1);
+		      printf ("%s\n", result);
+		    }
+		  else
+		    {
+		      funvar->attributes |= flags_on;
+		      funvar->attributes &= ~flags_off;
+		    }
 		}
 	      else
 		any_failed++;
@@ -240,13 +256,7 @@ declare_internal (list, local_var)
 	  if (!var)
 	    var = bind_variable (name, "");
 
-	  /* We are not allowed to rebind readonly variables that
-	     already are readonly unless we are turning off the
-	     readonly bit. */
-	  if (flags_off & att_readonly)
-	    flags_on &= ~att_readonly;
-
-	  if (value && readonly_p (var) && (!(flags_off & att_readonly)))
+	  if (readonly_p (var) && (flags_off & att_readonly))
 	    {
 	      builtin_error ("%s: readonly variable", name);
 	      any_failed++;

@@ -1,72 +1,7 @@
-*** NEWS	Wed Jul 12 10:08:44 1995
---- NEWS	Tue Apr 11 15:47:53 1995
+*** NEWS	Tue Apr 11 15:47:53 1995
+--- NEWS	Wed Jul 12 10:08:44 1995
 ***************
-*** 1,64 ****
-! This file documents the bugs fixed between this release, bash-1.14.5,
-! and the last public bash release, 1.14.4.
-  
-  1.  Bugs fixed in Bash
-  
-! a.  Fix to `fc' so that `fc -l' works when fewer than 16 commands are in
-!     the history list.
-  
-! b.  Fixes to the builtin getopt(3) and `getopts' to complete conversion
-!     from GNU glibc getopt() to internal bash getopt.
-  
-! c.  Changes to `make install' to bring it closer to GNU guidelines.
-  
-! d.  Fixes to the expansion code so that double quotes on the rhs of
-!     ${variableOPword} are handled better.
-  
-! e.  New/changed machines.h entries: Fujitsu UXP/M, Tandem
-  
-! f.  Changes to cpp-Makefile and the rest of the Makefiles to more closely
-!     adhere to the GNU coding standards.  In particular, all recommended
-!     targets should now exist.
-  
-! g.  `read' now correctly strips trailing IFS whitespace from the input line.
-  
-! h.  Reworked the documentation Makefile so that it does not use `texindex'
-!     and `tex', but rather `texi2dvi', as per the GNU coding standards
-  
-! i.  If SIGINT is not trapped, a process dying of SIGINT will cause the shell
-!     to act as if it had received SIGINT and break out of for, while, and
-!     until loops.
-  
-! j.  Fixed a bug that caused the `select' prompt to be garbled under
-!     certain conditions.
-  
-! k.  Fixed a bug that made `declare +r variable' turn off the readonly
-!     attribute for a variable.
-  
-! l.  Fixed a bug that prevented `declare -f -r function' (or other attributes)
-!     from changing the function's attributes.
-  
-! m.  Fixed a job control bug that allowed `fg' and `bg' to restart jobs
-!     that had terminated.
-  
-! n.  The pathname canonicalization code now handles filenames with backslashes
-!     embedded in them more reasonably.
-  
-! o.  Fixed a bug that caused the expression evaluator to occasionally core
-!     dump when printing an error message.
-  
-! p.  Fixed a bug that caused "$*" to sometimes leave a stray ^B in the
-!     expansion when there were no positional parameters.
-  
-! q.  Fixed a bug that caused pre-3.2v4.x SCO machines to hang waiting for
-!     waitpid(2) to return.
-  
-  2.  Bugs fixed in Readline
-  
-! a.  Fix to the display code so that null prompts don't cause core dumps.
-  
-! b.  Readline now recognizes that an $LC_CTYPE value of `ISO-8859-1' means
-!     that it should go into eight-bit mode.
-  
-! c.  Fixed a completion bug that removed user-supplied opening quotes in
-!     filenames under some circumstances.
---- 1,97 ----
+*** 1,97 ****
 ! This file documents the bugs fixed between this release, bash-1.14.4,
 ! and the last public bash release, 1.14.3.
   
@@ -164,3 +99,68 @@
 ! f.  Fixed a bug in the line updating functions that caused stray characters
 !     to be left on lines after the first if characters are removed from a
 !     wrapped line so that the line is exactly as long as the screen width.
+--- 1,64 ----
+! This file documents the bugs fixed between this release, bash-1.14.5,
+! and the last public bash release, 1.14.4.
+  
+  1.  Bugs fixed in Bash
+  
+! a.  Fix to `fc' so that `fc -l' works when fewer than 16 commands are in
+!     the history list.
+  
+! b.  Fixes to the builtin getopt(3) and `getopts' to complete conversion
+!     from GNU glibc getopt() to internal bash getopt.
+  
+! c.  Changes to `make install' to bring it closer to GNU guidelines.
+  
+! d.  Fixes to the expansion code so that double quotes on the rhs of
+!     ${variableOPword} are handled better.
+  
+! e.  New/changed machines.h entries: Fujitsu UXP/M, Tandem
+  
+! f.  Changes to cpp-Makefile and the rest of the Makefiles to more closely
+!     adhere to the GNU coding standards.  In particular, all recommended
+!     targets should now exist.
+  
+! g.  `read' now correctly strips trailing IFS whitespace from the input line.
+  
+! h.  Reworked the documentation Makefile so that it does not use `texindex'
+!     and `tex', but rather `texi2dvi', as per the GNU coding standards
+  
+! i.  If SIGINT is not trapped, a process dying of SIGINT will cause the shell
+!     to act as if it had received SIGINT and break out of for, while, and
+!     until loops.
+  
+! j.  Fixed a bug that caused the `select' prompt to be garbled under
+!     certain conditions.
+  
+! k.  Fixed a bug that made `declare +r variable' turn off the readonly
+!     attribute for a variable.
+  
+! l.  Fixed a bug that prevented `declare -f -r function' (or other attributes)
+!     from changing the function's attributes.
+  
+! m.  Fixed a job control bug that allowed `fg' and `bg' to restart jobs
+!     that had terminated.
+  
+! n.  The pathname canonicalization code now handles filenames with backslashes
+!     embedded in them more reasonably.
+  
+! o.  Fixed a bug that caused the expression evaluator to occasionally core
+!     dump when printing an error message.
+  
+! p.  Fixed a bug that caused "$*" to sometimes leave a stray ^B in the
+!     expansion when there were no positional parameters.
+  
+! q.  Fixed a bug that caused pre-3.2v4.x SCO machines to hang waiting for
+!     waitpid(2) to return.
+  
+  2.  Bugs fixed in Readline
+  
+! a.  Fix to the display code so that null prompts don't cause core dumps.
+  
+! b.  Readline now recognizes that an $LC_CTYPE value of `ISO-8859-1' means
+!     that it should go into eight-bit mode.
+  
+! c.  Fixed a completion bug that removed user-supplied opening quotes in
+!     filenames under some circumstances.

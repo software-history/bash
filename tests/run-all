@@ -1,7 +1,8 @@
 #! /bin/sh
 
-PATH=$PATH:.
+PATH=.:$PATH			# just to get the right version of printenv
 export PATH
+unset ENV
 
 echo Any output from any test indicates an anomaly worth investigating
 for x in run-*

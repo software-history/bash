@@ -47,10 +47,9 @@ ps:	$(PSOBJ)
 $(TEXINDEX):
 	(cd $(DOC_SUPPORT); $(MAKE) $(MFLAGS) CFLAGS='$(CFLAGS)' texindex)
 
-clean:
+distclean mostlyclean clean:
 	rm -f *.aux *.cp *.fn *.ky *.log *.pg *.toc *.tp *.vr *.cps *.pgs \
-	      *.fns *.kys *.tps *.vrs *.o core texinfo.tex
+	      *.fns *.kys *.tps *.vrs *.o core
 
-squeaky-clean:
-	rm -f *.aux *.cp *.fn *.ky *.log *.pg *.toc *.tp *.vr *.cps *.pgs \
-	      *.dvi *.info *.info-* *.fns *.kys *.tps *.vrs *.o core
+maintainer-clean realclean:	clean
+	rm -f *.dvi *.info *.info-*  *.ps

@@ -243,6 +243,13 @@ read_builtin (list)
 	  free (orig_input_string);
 	  return (EXECUTION_FAILURE);
 	}
+
+      /* This has to be done this way rather than using string_list
+	 and list_string because Posix.2 says that the last variable gets the
+	 remaining words and their intervening separators. */
+      input_string = strip_trailing_ifs_whitespace (input_string, ifs_chars,
+						      saw_escape);
+
       if (saw_escape)
 	{
 	  t = dequote_string (input_string);

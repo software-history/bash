@@ -84,7 +84,10 @@ then
 		exit
 	fi
 
-	${RMAIL} $BUGADDR < $TEMP || cat $TEMP >> $HOME/dead.bashbug
+	${RMAIL} $BUGADDR < $TEMP || {
+		cat $TEMP >> $HOME/dead.bashbug
+		echo "$0: mail failed: report saved in $HOME/dead.bashbug" >&2
+	}
 fi
 
 exit 0

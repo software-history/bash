@@ -6,11 +6,11 @@
 .\"	Case Western Reserve University
 .\"	chet@ins.CWRU.Edu
 .\"
-.\"	Last Change: Thu Mar  9 18:40:22 EST 1995
+.\"	Last Change: Fri May  5 10:44:39 EDT 1995
 .\"
 .\" bash_builtins, strip all but Built-Ins section
 .if \n(zZ=1 .ig zZ
-.TH BASH 1 "1995 Mar 9" GNU
+.TH BASH 1 "1995 May 5" GNU
 .\"
 .\" There's some problem with having a `@'
 .\" in a tagged paragraph with the BSD man macros.
@@ -1937,7 +1937,7 @@ positional parameters and the special parameter
 are restored to the values they had prior to function
 execution.
 .PP
-Function names may be listed with the
+Function names and definitions may be listed with the
 .B \-f
 option to the
 .B declare
@@ -3140,13 +3140,6 @@ of an \fIinputrc\fP file.
 .B display\-shell\-version (C\-x C\-v)
 Display version information about the current instance of
 .BR bash .
-.TP
-.B emacs\-editing\-mode (C\-e)
-When in
-.B vi
-editing mode, this causes a switch to
-.B emacs
-editing mode.
 .PD
 .SH HISTORY
 When interactive, the shell provides access to the \fIcommand history\fP,
@@ -5329,10 +5322,12 @@ version of
 .B bash
 that you have.
 .PP
-Once you have determined that a bug actually exists, mail a
-bug report to \fIbash\-maintainers\fP@\fIprep.ai.MIT.Edu\fP.
+Once you have determined that a bug actually exists, use the
+.I bashbug
+command to submit a bug report.
 If you have a fix, you are welcome to mail that
-as well!  Suggestions and `philosophical' bug reports may be mailed
+as well!
+Suggestions and `philosophical' bug reports may be mailed
 to \fPbug-bash\fP@\fIprep.ai.MIT.Edu\fP or posted to the Usenet
 newsgroup
 .BR gnu.bash.bug .
@@ -5351,6 +5346,10 @@ A description of the bug behaviour
 .TP
 A short script or `recipe' which exercises the bug
 .PD
+.PP
+.I bashbug
+inserts the first three items automatically into the template
+it provides for filing a bug report.
 .PP
 Comments and bug reports concerning
 this manual page should be directed to

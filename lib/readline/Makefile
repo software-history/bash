@@ -98,10 +98,6 @@ uninstall:
 	cd $(incdir)/readline && ${RM} -f ${INSTALLED_HEADERS}
 	cd $(libdir) && ${RM} -f libreadline.a libreadline.old
 
-clean:
-	rm -f $(OBJECTS) *.a
-	(if [ -d doc ]; then cd doc; $(MAKE) $(MFLAGS) $@; fi)
-
 tags:	force
 	etags $(CSOURCES) $(HSOURCES)
 
@@ -114,7 +110,12 @@ readline: $(OBJECTS)
 	  $(LOCAL_INCLUDES) -DTEST -o readline readline.c vi_mode.o funmap.o \
 	  keymaps.o -ltermcap
 
-realclean distclean mostlyclean: clean
+clean:
+	$(RM) -f $(OBJECTS) libreadline.a libhistory.a
+	(if [ -d doc ]; then cd doc; $(MAKE) $(MFLAGS) $@; fi)
+
+maintainer-clean realclean distclean mostlyclean: clean
+	(if [ -d doc ]; then cd doc; $(MAKE) $(MFLAGS) $@; fi)
 
 # Dependencies
 readline.o: readline.c readline.h rldefs.h rlconf.h chardefs.h

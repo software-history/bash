@@ -18,7 +18,7 @@ VPATH = .:$(srcdir)
 .def.o:
 	$(RM) $@
 	./$(MKBUILTINS) $(DIRECTDEFINE) $<
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) $*.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $*.c || ( $(RM) $*.c ; exit 1 )
 	$(RM) $*.c
 
 # How to make a .c file from a .def file.
@@ -91,7 +91,13 @@ builtins.texi: $(MKBUILTINS)
 	./$(MKBUILTINS) -documentonly $(DEFS)
 
 clean:
-	$(RM) $(OFILES) $(CREATED_FILES) $(MKBUILTINS) libbuiltins.a
+	$(RM) $(OFILES) $(CREATED_FILES) $(MKBUILTINS)
+
+mostlyclean:
+	$(RM) $(OFILES) libbuiltins.a
+
+distclean realclean maintainer-clean: clean
+	$(RM) libbuiltins.a
 
 alias.o: alias.def
 bind.o: bind.def

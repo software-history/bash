@@ -58,6 +58,9 @@ install:	$(DESTDIR)/libtermcap.a
 clean:
 		rm -f *.o *.a *.log *.cp *.tp *.vr *.fn *.aux *.pg *.toc
 
+maintainer-clean realclean mostlyclean distclean: clean
+
+
 $(DESTDIR)/libtermcap.a: libtermcap.a
 		-mv $(DESTDIR)/libtermcap.a $(DESTDIR)/libtermcap.old
 		cp libtermcap.a $@

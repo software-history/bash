@@ -66,8 +66,6 @@ all: .made
 /* Include some boilerplate Gnu makefile definitions. */
 prefix = /usr/local
 
-/**/#prefix = @prefix@
-
 exec_prefix = $(prefix)
 bindir = $(exec_prefix)/bin
 libdir = $(exec_prefix)/lib
@@ -84,11 +82,8 @@ manext = $(man1ext)
 infodir = $(prefix)/info
 
 srcdir = .
-/**/#srcdir = @srcdir@
 
 VPATH = .:$(srcdir)
-
-/**/#incdir = @incdir@
 
 /* If you have purify, and want to use it, uncomment this definition or
    run the make as `make -f bash-Makefile bash PURIFY=purify'. */
@@ -155,8 +150,9 @@ CP = cp
 RM = rm -f
 AR = ar
 
-INSTALL_PROGRAM = install -c
-INSTALL_DATA = install -c -m 644
+INSTALL = $(SUPPORT_SRC)install.sh
+INSTALL_PROGRAM = $(INSTALL) -c
+INSTALL_DATA = $(INSTALL) -c -m 644
 
 COMPRESS = gzip
 COMPRESS_EXT = .gz
@@ -721,39 +717,39 @@ LIBDEP = $(READLINE_DEP) $(TERMCAP_DEP) $(GLOB_DEP) $(HISTORY_DEP) $(TILDE_DEP) 
 
 /**/# Rules for cleaning the readline and termcap sources.
 #if defined (HAVE_READLINE_SOURCE)
-CLEAN_READLINE = (cd $(RL_LIBDIR); $(MAKE) $(MFLAGS) clean)
+CLEAN_READLINE = (cd $(RL_LIBDIR); $(MAKE) $(MFLAGS) $@)
 #else
 CLEAN_READLINE = :
 #endif /* !HAVE_READLINE_SOURCE */
 
 #if defined (HAVE_HISTORY_SOURCE)
 #  if !defined (READLINE)
-CLEAN_HISTORY = (cd $(HIST_LIBDIR); $(MAKE) $(MFLAGS) clean)
+CLEAN_HISTORY = (cd $(HIST_LIBDIR); $(MAKE) $(MFLAGS) $@)
 #  else
 CLEAN_HISTORY = :
 #  endif /* READLINE */
 #endif /* !HAVE_HISTORY_SOURCE */
 
 #if defined (HAVE_TERMCAP_SOURCE)
-CLEAN_TERMCAP = (cd $(TERM_LIBDIR); $(MAKE) $(MFLAGS) clean)
+CLEAN_TERMCAP = (cd $(TERM_LIBDIR); $(MAKE) $(MFLAGS) $@)
 #else
 CLEAN_TERMCAP = :
 #endif /* !HAVE_TERMCAP_SOURCE */
 
 #if defined (USE_GLOB_LIBRARY)
-CLEAN_GLOB = (cd $(GLOB_LIBDIR); $(MAKE) $(MFLAGS) clean)
+CLEAN_GLOB = (cd $(GLOB_LIBDIR); $(MAKE) $(MFLAGS) $@)
 #else
 CLEAN_GLOB = :
 #endif /* !USE_GLOB_LIBRARY */
 
 #if defined (HAVE_TILDE_SOURCE)
-CLEAN_TILDE = (cd $(TILDE_LIBDIR); $(MAKE) $(MFLAGS) clean)
+CLEAN_TILDE = (cd $(TILDE_LIBDIR); $(MAKE) $(MFLAGS) $@)
 #else
 CLEAN_TILDE = :
 #endif /* !HAVE_TILDE_SOURCE */
 
 #if defined (USE_GNU_MALLOC_LIBRARY)
-CLEAN_MALLOC = (cd $(MALLOC_LIBDIR); $(MAKE) $(MFLAGS) clean)
+CLEAN_MALLOC = (cd $(MALLOC_LIBDIR); $(MAKE) $(MFLAGS) $@)
 #else
 CLEAN_MALLOC = :
 #endif /* !USE_GNU_MALLOC_LIBRARY */
@@ -918,11 +914,6 @@ OBJECTS	 = shell.o y.tab.o general.o make_cmd.o print_cmd.o $(GLOBO) \
 	   unwind_prot.o $(VPRINT_OBJ) input.o $(HIST_SUPPORT_OBJ) \
 	   $(SIGLIST) $(GETCWD) version.o $(RL_SUPPORT_OBJ) $(BUILTINS_LIB)
 
-#if defined (LOAD_BUILTIN)
-LOAD_DEF = $(DEFDIR)load.def
-LOAD_OBJ = $(DEFDIR)load.o
-#endif /* LOAD_BUILTIN */
-
 /**/# Where the source code of the shell builtins resides.
 BUILTIN_SRCDIR=$(srcdir)/builtins/
 /**/# The trailing slash was left off this definition on purpose
@@ -1002,7 +993,7 @@ TEST_SUITE = ./test-suite/
 TEST_SUITE_SUPPORT = $(TEST_SUITE)[a-zA-Z0-9]* $(SUPPORT_SRC)recho.c
 
 CREATED_SUPPORT = $(ENDIAN_OUTPUT) $(SIGNAMES_OUTPUT) sysdefs.h \
-		  $(SDIR)getcppsyms recho tests/recho
+		  $(SDIR)getcppsyms recho tests/recho tests/printenv
 
 SUPPORT = configure $(ENDIAN_SUPPORT) $(SIGNAMES_SUPPORT) $(SCRIPTS_SUPPORT) \
 	  $(BUILTIN_SUPPORT) COPYING Makefile cpp-Makefile ChangeLog \
@@ -1438,21 +1429,23 @@ $(Program).tar$(COMPRESS_EXT):	$(Program).tar
 clone:		$(THINGS_TO_TAR)
 		@$(MKTARFILE) +notar $(Machine) $(OS) $(THINGS_TO_TAR)
 
-install:	.made
-		-if [ -f $(bindir)/$(Program) ]; \
-		  then mv $(bindir)/$(Program) $(bindir)/$(Program).old; \
+installdirs:
+		@${SHELL} $(SUPPORT_SRC)mkdirs $(bindir)
+		@${SHELL} $(SUPPORT_SRC)mkdirs $(mandir) $(man3dir)
+		@${SHELL} $(SUPPORT_SRC)mkdirs $(infodir)
+
+install:	.made installdirs documentation
+		-if [ -f $(bindir)/$(Program) ]; then \
+		  rm -f $(bindir)/$(Program).old ;\
+		  ln $(bindir)/$(Program) $(bindir)/$(Program).old; \
 		fi
 		$(INSTALL_PROGRAM) $(Program) $(bindir)/$(Program)
 		-if [ -f $(bindir)/bashbug ]; \
 		  then mv $(bindir)/bashbug $(bindir)/bashbug.old; \
 		fi
 		$(INSTALL_PROGRAM) bashbug $(bindir)/bashbug
-		$(RM) installed-$(Program)
-		-ln -s $(bindir)/$(Program) installed-$(Program)
 		( cd $(DOCDIR) ; $(MAKE) $(MFLAGS) mandir=$(mandir) \
-			man3dir=$(man3dir) infodir=$(infodir) \
-			INSTALL_PROGRAM="${INSTALL_PROGRAM}" \
-			INSTALL_DATA="${INSTALL_DATA}" $@ )
+			man3dir=$(man3dir) infodir=$(infodir) $@ )
 
 uninstall:	.made
 		$(RM) $(bindir)/$(Program) installed-$(Program) $(bindir)/bashbug
@@ -1481,11 +1474,8 @@ newversion:	newversion.aux
 		mv -f newversion.h version.h
 		$(MAKE) -f $(srcdir)/Makefile $(MFLAGS) srcdir=$(srcdir)
 
-texindex:	force
-		build_lib_in_dir($(LIBPATH)doc-support, texindex, $${topdir}/lib/doc-support, $${topdir}/lib/doc-support/Makefile)
-
-documentation:  force texindex
-		(cd $(DOCDIR); $(MAKE) $(MFLAGS) CFLAGS='$(CCFLAGS)')
+documentation:  force
+		(cd $(DOCDIR); $(MAKE) $(MFLAGS))
 
 force:
 
@@ -1495,13 +1485,18 @@ tags:		$(SOURCES) $(BUILTIN_C_SRC) $(LIBRARY_SOURCE)
 TAGS:		$(SOURCES) $(BUILTIN_C_SRC) $(LIBRARY_SOURCE)
 		ctags -x $(SOURCES) $(BUILTIN_C_SRC) $(LIBRARY_SOURCE) > $@
 
-clean:
+basic-clean:
 		$(RM) $(OBJECTS) $(Program) bashbug ansi-Makefile *.aux
 		$(RM) .build .made .machine version.h
-		$(RM) $(CREATED_SUPPORT) bash-Makefile
+		$(RM) $(CREATED_SUPPORT)
 		$(RM) tags TAGS
-		(cd $(DOCDIR); $(MAKE) $(MFLAGS) clean)
-		(cd builtins; $(MAKE) $(MFLAGS) clean)
+
+mostlyclean:
+		$(RM) $(OBJECTS) $(Program) bashbug
+		$(RM) .build .made .machine version.h
+		$(RM) tags TAGS
+		(cd $(DOCDIR) && $(MAKE) $(MFLAGS) $@ )
+		(cd builtins && $(MAKE) $(MFLAGS) $@ )
 		$(CLEAN_READLINE) ;
 		$(CLEAN_HISTORY) ;
 		$(CLEAN_TERMCAP) ;
@@ -1509,16 +1504,33 @@ clean:
 		$(CLEAN_TILDE) ;
 		$(CLEAN_MALLOC) ;
 
-distclean:	clean
-		$(RM) installed-bash
+distclean clean:	basic-clean
+		(cd $(DOCDIR) && $(MAKE) $(MFLAGS) $@ )
+		(cd builtins && $(MAKE) $(MFLAGS) $@ )
+		$(CLEAN_READLINE) ;
+		$(CLEAN_HISTORY) ;
+		$(CLEAN_TERMCAP) ;
+		$(CLEAN_GLOB) ;
+		$(CLEAN_TILDE) ;
+		$(CLEAN_MALLOC) ;
+		$(RM) bash-Makefile
 
-realclean:	clean
-		$(RM) y.tab.c y.tab.h parser-built installed-bash
+realclean maintainer-clean:	basic-clean
+		$(RM) y.tab.c y.tab.h parser-built
+		(cd $(DOCDIR) && $(MAKE) $(MFLAGS) $@ )
+		(cd builtins && $(MAKE) $(MFLAGS) $@ )
+		$(CLEAN_READLINE) ;
+		$(CLEAN_HISTORY) ;
+		$(CLEAN_TERMCAP) ;
+		$(CLEAN_GLOB) ;
+		$(CLEAN_TILDE) ;
+		$(CLEAN_MALLOC) ;
+		$(RM) bash-Makefile
 
 recho:		$(SUPPORT_SRC)recho.c
 	@$(CC) -o $@ $(SUPPORT_SRC)recho.c
 
-tests:		force $(Program) recho
+tests check:		force $(Program) recho
 	@cp recho $(SUPPORT_SRC)printenv tests
 	( cd tests ; sh run-all )
 

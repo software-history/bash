@@ -83,7 +83,7 @@ void
 getopts_reset (newind)
      int newind;
 {
-  optind = newind;
+  sh_optind = newind;
 }
 
 /* Error handling is now performed as specified by Posix.2, draft 11
@@ -141,9 +141,9 @@ dogetopts (argc, argv)
 
   if (special_error)
     {
-      old_opterr = opterr;
+      old_opterr = sh_opterr;
       optstr++;
-      opterr = 0;		/* suppress diagnostic messages */
+      sh_opterr = 0;		/* suppress diagnostic messages */
     }
 
   if (argc > 1)
@@ -151,7 +151,7 @@ dogetopts (argc, argv)
       sh_getopt_restore_state (argv);
       t = argv[0];
       argv[0] = dollar_vars[0];
-      ret = getopt (argc, argv, optstr);
+      ret = sh_getopt (argc, argv, optstr);
       argv[0] = t;
     }
   else if (rest_of_args == (WORD_LIST *)NULL)
@@ -159,7 +159,7 @@ dogetopts (argc, argv)
       register int i;
 
       for (i = 0; dollar_vars[i]; i++);
-      ret = getopt (i, dollar_vars, optstr);
+      ret = sh_getopt (i, dollar_vars, optstr);
     }
   else
     {
@@ -175,24 +175,24 @@ dogetopts (argc, argv)
       for (words = rest_of_args; words; words = words->next, i++)
         v[i] = words->word->word;
       v[i] = (char *)NULL;
-      ret = getopt (i, v, optstr);
+      ret = sh_getopt (i, v, optstr);
       free (v);
     }
 
   if (special_error)
-    opterr = old_opterr;
+    sh_opterr = old_opterr;
 
   /* Set the OPTIND variable in any case, to handle "--" skipping. */
-  if (optind < 10)
+  if (sh_optind < 10)
     {
-      numval[14] = optind + '0';
+      numval[14] = sh_optind + '0';
       numval[15] = '\0';
       i = 14;
     }
   else
     {
       numval[i = 15] = '\0';
-      n = optind;
+      n = sh_optind;
       do
 	{
 	  numval[--i] = (n % 10) + '0';
@@ -203,14 +203,14 @@ dogetopts (argc, argv)
 
   /* If an error occurred, decide which one it is and set the return
      code appropriately.  In all cases, the option character in error
-     is in OPTOPT.  If an illegal option was encountered, OPTARG is
+     is in SH_OPTOPT.  If an illegal option was encountered, OPTARG is
      NULL.  If a required option argument was missing, OPTARG points
      to a NULL string (that is, optarg[0] == 0). */
   if (ret == '?')
     {
-      if (optarg == NULL)
+      if (sh_optarg == NULL)
 	ret = G_ILLEGAL_OPT;
-      else if (optarg[0] == '\0')
+      else if (sh_optarg[0] == '\0')
 	ret = G_ARG_MISSING;
     }
 	    
@@ -229,7 +229,7 @@ dogetopts (argc, argv)
 
       if (special_error)
 	{
-	  strval[0] = (char) optopt;
+	  strval[0] = (char) sh_optopt;
 	  strval[1] = '\0';
 	  bind_variable ("OPTARG", strval);
 	}
@@ -247,7 +247,7 @@ dogetopts (argc, argv)
 	  strval[1] = '\0';
 	  bind_variable (name, strval);
 
-	  strval[0] = (char) optopt;
+	  strval[0] = (char) sh_optopt;
 	  strval[1] = '\0';
 	  bind_variable ("OPTARG", strval);
 	}
@@ -261,7 +261,7 @@ dogetopts (argc, argv)
       return (EXECUTION_SUCCESS);
     }			
 
-  bind_variable ("OPTARG", optarg);
+  bind_variable ("OPTARG", sh_optarg);
 
   strval[0] = (char) ret;
   strval[1] = '\0';

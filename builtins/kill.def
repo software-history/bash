@@ -39,6 +39,7 @@ $END
 extern int errno;
 #endif /* !errno */
 
+#include "../bashtypes.h"
 #include "../shell.h"
 #include "../trap.h"
 #include "../jobs.h"

@@ -80,6 +80,11 @@ if [ -n "$UNAME" ] && [ "$UNAME_S" != "$UNAME" ] && [ "$UNAME_S" = UNIX_SV ]; th
 	UNAME=UNIX_SV
 fi
 
+# (sound of teeth grinding...)
+if [ "$UNAME" = "UNIX_SV" ] && [ "$UNAME_R" != "4.2" ] && [ "$RELEASE"."$LEVEL" = "4.2" ]; then
+	UNAME_R="4.2"
+fi
+
 # another check for SVR4 on 386 or 486 machines
 case "${UNAME_M}:${UNAME}:${UNAME_R}" in
 i[34]86:UNIX_SV:4.*)	SYSDEF=USGr4 ;;
@@ -239,6 +244,12 @@ if [ "$SYSDEF" = "" ]; then
 	ESA) SYSDEF=AIXESA ;;    
 	XD88*) SYSDEF=XD88 ;;
 	M88100) SYSDEF=M88100 ;;	# Motorola Delta 88K
+	esac
+fi
+
+if [ "$SYSDEF" = "" ]; then
+	case "$UNAME_V" in
+	V[0-9]*L[0-9]*) SYSDEF=UXP ;;	# Fujitsu DS/90
 	esac
 fi
 

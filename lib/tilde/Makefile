@@ -14,7 +14,9 @@
 # Please note that the values for INCLUDES, CC, AR, RM, CP,
 # RANLIB, and selfdir are passed in from ../Makefile, and do
 # not need to be defined here.
-RM = rm
+RM = rm -f
+MV = mv
+CP = cp
 
 srcdir = .
 VPATH = .:$(srcdir)
@@ -59,7 +61,7 @@ THINGS_TO_TAR = $(SOURCES) $(SUPPORT)
 all: $(LIBRARY_NAME)
 
 $(LIBRARY_NAME): $(OBJECTS)
-	$(RM) -f $@
+	$(RM) $@
 	$(AR) cq $@ $(OBJECTS)
 	-[ -n "$(RANLIB)" ] && $(RANLIB) $@
 
@@ -81,8 +83,10 @@ install:
 	-[ -n "$(RANLIB)" ] && $(RANLIB) -t $(bindir)/$(LIBRARY_NAME)
 
 clean:
-	$(RM) -f $(OBJECTS) $(LIBRARY_NAME)
-	-(cd doc; $(MAKE) $(MFLAGS) clean)
+	$(RM) $(OBJECTS) $(LIBRARY_NAME)
+	-(cd doc && $(MAKE) $(MFLAGS) $@)
+
+maintainer-clean realclean mostlyclean distclean: clean
 
 
 ######################################################################

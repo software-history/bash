@@ -202,7 +202,7 @@ sh_getopt (argc, argv, optstring)
   return c;
 }
 
-int
+void
 sh_getopt_restore_state (argv)
      char **argv;
 {

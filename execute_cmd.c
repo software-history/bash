@@ -1304,16 +1304,16 @@ execute_select_command (select_command)
   if (select_command->flags & CMD_IGNORE_RETURN)
     select_command->action->flags |= CMD_IGNORE_RETURN;
 
-  ps3_prompt = get_string_value ("PS3");
-  if (!ps3_prompt)
-    ps3_prompt = "#? ";
-
   unwind_protect_int (return_catch_flag);
   unwind_protect_jmp_buf (return_catch);
   return_catch_flag++;
 
   while (1)
     {
+      ps3_prompt = get_string_value ("PS3");
+      if (!ps3_prompt)
+	ps3_prompt = "#? ";
+
       QUIT;
       selection = select_query (list, list_len, ps3_prompt);
       QUIT;
@@ -1870,8 +1870,10 @@ execute_builtin (builtin, words, flags, subshell)
 	    add_unwind_protect (dispose_builtin_env, (char *)NULL);
 	  dispose_used_env_vars ();
 	}
+#if 0
       else
 	builtin_env = (char **)NULL;
+#endif
     }
 
   result = ((*builtin) (words->next));
@@ -1934,8 +1936,10 @@ execute_function (var, words, flags, fds_to_close, async, subshell)
       add_unwind_protect (dispose_function_env, (char *)NULL);
       dispose_used_env_vars ();
     }
+#if 0
   else
     function_env = (char **)NULL;
+#endif
 
   /* Note the second argument of "1", meaning that we discard
      the current value of "$*"!  This is apparently the right thing. */

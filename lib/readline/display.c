@@ -185,7 +185,7 @@ expand_prompt (pmt, lp)
       return r;
     }
 
-  l = strlen (pmt);
+  l = pmt ? strlen (pmt) : 0;
   r = ret = xmalloc (l + 1);
   
   for (rl = ignoring = 0, p = pmt; p && *p; p++)
@@ -765,7 +765,7 @@ update_line (old, new, current_line, omax, nmax, inv_botlin)
      escape sequences (like drawing the `unbold' sequence without a
      corresponding `bold') that manifests itself on certain terminals. */
 
-  lendiff = strlen (local_prompt);
+  lendiff = local_prompt ? strlen (local_prompt) : 0;
   if (current_line == 0 && !_rl_horizontal_scroll_mode &&
       lendiff > visible_length &&
       _rl_last_c_pos > 0 && (ofd - old) >= lendiff && term_cr)

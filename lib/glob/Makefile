@@ -67,7 +67,8 @@ what-tar:
 	done
 
 documentation: force
-	-(cd doc; $(MAKE) $(MFLAGS))
+	-(cd doc && $(MAKE) $(MFLAGS))
+
 force:
 
 # The rule for 'includes' is written funny so that the if statement
@@ -80,8 +81,10 @@ install:
 
 clean:
 	rm -f $(OBJECTS) $(LIBRARY_NAME)
-	-(cd doc; $(MAKE) $(MFLAGS) clean)
+	-(cd doc && $(MAKE) $(MFLAGS) $@)
 
+maintainer-clean realclean mostlyclean distclean: clean
+	-(cd doc && $(MAKE) $(MFLAGS) $@)
 
 ######################################################################
 #								     #

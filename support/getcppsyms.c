@@ -332,6 +332,9 @@ main ()
 #if defined (n16)
   printf (" -Dn16");
 #endif /* n16 */
+#if defined __nonstopux
+  printf (" -D__nonstopux");
+#endif
 #if defined (ns32000)
   printf (" -Dns32000");
 #endif /* ns32000 */

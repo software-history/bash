@@ -1,5 +1,6 @@
 This directory contains the bash documentation.
 
+FAQ		- a set of frequently-asked questions about Bash with answers
 article.ms	- an article I wrote about bash for The Linux Journal
 bash.1		- the bash man page
 builtins.1	- a man page that documents the builtins, extracted from bash.1

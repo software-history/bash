@@ -471,7 +471,7 @@
    * Place /bsd43/bin in your PATH before /bin.
    * Use `$(CC) -E' instead of `/lib/cpp' in Makefile.
 */
-#if defined (mips) && (!defined (M_MACHINE) || defined (RiscOS))
+#if defined (mips) && ((!defined (M_MACHINE) && !defined (__nonstopux)) || defined (RiscOS))
 
 #  if defined (MIPSEB)
 #    define M_MACHINE "MIPSEB"
@@ -2017,9 +2017,17 @@ MAKE = make
 
 /* ************************ */
 /*			    */
-/*    Tandem running SVR3   */
+/*          Tandem          */
 /*			    */
 /* ************************ */
+/* I don't know what this is supposed to be (Greg Lehey, LEMIS, 29 May 1995).
+ * Tandem had two very different machines which ran SVR3: the LXN, based on
+ * a Motorola 68000, and the S2, based on a MIPS R3000.  Both are obsolete
+ * (well, S2s should now be running NonStop UX version B, which is a flavour
+ * of SVR4).  I'm leaving this here and will test for NonStop UX B with the
+ * preprocessor variable __nonstopux, which is set by the native compiler and
+ * should also be set by any other compiler, such as gcc (caveat portor: you'$
+ * need to fix gcc config to to get this). */
 #if defined (tandem) && !defined (M_MACHINE)
 #  define M_MACHINE "tandem"
 #  define M_OS "USG"
@@ -2033,13 +2041,58 @@ MAKE = make
 #  undef HAVE_GETWD
 #endif /* Tandem running SVR3 */
 
+/* This is for NonStop UX Bxx, which is SVR4, but there's a very good
+ * chance it will trigger on NonStop UX Axx (SVR3).  If this happens,
+ * fix it or upgrade your OS. */
+#if defined (mips) && defined (__nonstopux)               /* Integrity, NonStop UX */
+#  define M_MACHINE "Integrity"
+#  define M_OS "NonStop_UX"
+#  undef HAVE_GETWD
+#  define HAVE_DIRENT
+#  define HAVE_STRERROR
+#  define HAVE_VFPRINTF
+#  define VOID_SIGHANDLER
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_SETLINEBUF
+#  define HAVE_GETGROUPS
+#  undef HAVE_ALLOCA
+#endif
+
+/* ****************** */ 
+/*                    */
+/*  Fujitsu UXP/M     */
+/*                    */
+/* ****************** */ 
+
+#if defined (__uxpm__)
+#  define M_MACHINE "VP"
+#  define M_OS "USG"
+#  define VOID_SIGHANDLER
+#  define HAVE_POSIX_SIGNALS
+#  define HAVE_VFPRINTF
+#  define HAVE_DIRENT
+#  define HAVE_SETVBUF
+#  define HAVE_STRCHR
+#  define HAVE_STRERROR
+#  define HAVE_GETGROUPS
+#  define HAVE_DUP2
+#  undef HAVE_ALLOCA
+#  undef HAVE_GETWD
+#  define HAVE_GETCWD
+#  define HAVE_SYS_SIGLIST
+#  define NO_SBRK_DECL
+#  define SYSDEP_CFLAGS  -DHAVE_UID_T -Dsys_siglist=_sys_siglist  -DUSGr4 
+#  define EXTRA_LIB_SEARCH_PATH /usr/ucblib
+#  define REQUIRED_LIBRARIES -lc -lucb
+#endif
+
 /* ****************** */ 
 /*                    */
 /*     Amdahl UTS     */
 /*                    */
 /* ****************** */
 
-#if defined (UTS)
+#if defined (UTS) && !defined (M_MACHINE)
 #  define M_MACHINE "uts"
 #  define M_OS "systemV"
 #  define SYSDEP_CFLAGS -DUSG -DMEMMOVE_MISSING

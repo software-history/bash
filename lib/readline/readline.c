@@ -996,7 +996,8 @@ readline_initialize_everything ()
   /* Check for LC_CTYPE and use its value to decide the defaults for
      8-bit character input and output. */
   t = getenv ("LC_CTYPE");
-  if (t && (strcmp (t, "iso-8859-1") == 0 || strcmp (t, "iso_8859_1") == 0))
+  if (t && (strcmp (t, "iso-8859-1") == 0 || strcmp (t, "iso_8859_1") == 0 ||
+  	    strcmp (t, "ISO-8859-1") == 0))
     {
       _rl_meta_flag = 1;
       _rl_convert_meta_chars_to_ascii = 0;
@@ -3125,7 +3126,7 @@ rl_kill_line (direction, ignore)
     return (rl_backward_kill_line (1));
   else
     {
-      rl_end_of_line ();
+      rl_end_of_line (1, ignore);
       if (orig_point != rl_point)
 	rl_kill_text (orig_point, rl_point);
       rl_point = orig_point;
@@ -3148,7 +3149,7 @@ rl_backward_kill_line (direction, ignore)
 	ding ();
       else
 	{
-	  rl_beg_of_line ();
+	  rl_beg_of_line (1, ignore);
 	  rl_kill_text (orig_point, rl_point);
 	}
     }
@@ -3172,7 +3173,7 @@ rl_yank (count, ignore)
 {
   if (!rl_kill_ring)
     {
-      rl_abort ();
+      rl_abort (count, ignore);
       return -1;
     }
 
@@ -3193,7 +3194,7 @@ rl_yank_pop (count, key)
   if (((rl_last_func != rl_yank_pop) && (rl_last_func != rl_yank)) ||
       !rl_kill_ring)
     {
-      rl_abort ();
+      rl_abort (1, key);
       return -1;
     }
 
@@ -3212,7 +3213,7 @@ rl_yank_pop (count, key)
     }
   else
     {
-      rl_abort ();
+      rl_abort (1, key);
       return -1;
     }
 }

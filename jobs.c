@@ -1494,13 +1494,24 @@ wait_for (pid)
       sigsuspend (&suspend_set);
 #else /* !WAITPID_BROKEN */
 #  if defined (MUST_UNBLOCK_CHILD)	/* SCO */
-      UNBLOCK_CHILD (oset);
+      struct sigaction act, oact;
+      sigset_t nullset, chldset;
+
+      sigemptyset (&nullset);
+      sigemptyset (&chldset);
+      sigprocmask (SIG_SETMASK, &nullset, &chldset);
+      act.sa_handler = SIG_DFL;
+      sigemptyset (&act.sa_mask);
+      sigemptyset (&oact.sa_mask);
+      act.sa_flags = 0;
+      sigaction (SIGCHLD, &act, &oact);
 #  endif
       waiting_for_job = 1;
       waitchld (0);
       waiting_for_job = 0;
 #  if defined (MUST_UNBLOCK_CHILD)
-      BLOCK_CHILD (set, oset);
+      sigaction (SIGCHLD, &oact, (struct sigaction *)NULL);
+      sigprocmask (SIG_SETMASK, &chldset, (sigset_t *)NULL);
 #  endif
 #endif /* !WAITPID_BROKEN */
       goto wait_loop;
@@ -1547,8 +1558,19 @@ wait_for (pid)
 		WIFSIGNALED (child->status) &&
 		WTERMSIG (child->status) == SIGINT)
 	    {
-	      putchar ('\n');
-	      fflush (stdout);
+	      /* If SIGINT is not trapped, set the interrupt state if in a
+	         loop so the loop will be broken.  If not in a loop, print
+	         the newline that the kernel does not. */
+	      if (signal_is_trapped (SIGINT) == 0)
+		{
+		  if (loop_level)
+		    interrupt_state++;
+		  else
+		    {
+		      putchar ('\n');
+		      fflush (stdout);
+		    }
+		}
 	    }
 
 	  notify_and_cleanup ();
@@ -1780,6 +1802,13 @@ start_job (job, foreground)
 
   BLOCK_CHILD (set, oset);
   already_running = (JOBSTATE (job) == JRUNNING);
+
+  if (JOBSTATE (job) == JDEAD)
+    {
+      report_error ("%s: job has terminated", this_command_name);
+      UNBLOCK_CHILD (oset);
+      return (-1);
+    }
 
   if (!foreground && already_running)
     {
@@ -2113,7 +2142,8 @@ waitchld (s)
 				  SigHandler *temp_handler;
 				  temp_handler = old_sigint_handler;
 				  restore_sigint_handler ();
-				  (*temp_handler) (SIGINT);
+				  if (temp_handler != SIG_IGN)
+				    (*temp_handler) (SIGINT);
 				}
 			    }
 			}

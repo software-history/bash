@@ -50,6 +50,7 @@ extern int errno;
 #endif
 
 #include <glob/fnmatch.h>
+#include "builtins/getopt.h"
 
 /* The size that strings change by. */
 #define DEFAULT_ARRAY_SIZE 512
@@ -66,7 +67,6 @@ extern int last_command_exit_value, interactive, interactive_shell;
 extern int subshell_environment;
 extern int dollar_dollar_pid, no_brace_expansion;
 extern int posixly_correct;
-extern int opterr, optind;
 extern int eof_encountered, eof_encountered_limit, ignoreeof;
 extern char *this_command_name;
 extern jmp_buf top_level;
@@ -1093,6 +1093,26 @@ get_word_from_string (stringp, separators, endptr)
   return (current_word);
 }
 
+/* Remove IFS white space at the end of STRING.  Start at the end
+   of the string and walk backwards until the beginning of the string
+   or we find a character that's not IFS white space and not CTLESC.
+   Only let CTLESC escape a white space character if SAW_ESCAPE is
+   non-zero.  */
+char *
+strip_trailing_ifs_whitespace (string, separators, saw_escape)
+     char *string, *separators;
+     int saw_escape;
+{
+  char *s;
+  
+  s = string + STRLEN (string) - 1;
+  while (s > string && ((spctabnl (*s) && issep (*s)) ||
+			(saw_escape && *s == CTLESC && spctabnl (s[1]))))
+    s--;
+  *++s = '\0';
+  return string;
+}
+
 #if defined (PROCESS_SUBSTITUTION)
 #define EXP_CHAR(s) (s == '$' || s == '`' || s == '<' || s == '>' || s == CTLESC)
 #else
@@ -1365,6 +1385,25 @@ expand_string_unsplit (string, quoted)
   return (value);
 }
 
+/* This does not perform word splitting or dequote the WORD_LIST
+   it returns. */
+static WORD_LIST *
+expand_string_for_rhs (string, quoted, dollar_at_p, has_dollar_at)
+     char *string;
+     int quoted, *dollar_at_p, *has_dollar_at;
+{
+  WORD_DESC td;
+  WORD_LIST *tresult;
+
+  if (string == 0 || *string == '\0')
+    return (WORD_LIST *)NULL;
+     
+  bzero (&td, sizeof (td));
+  td.word = string; 
+  tresult = call_expand_word_internal (&td, quoted, dollar_at_p, has_dollar_at);
+  return (tresult);
+}
+
 /* Expand STRING just as if you were expanding a word, but do not dequote
    the resultant WORD_LIST.  This is called only from within this file,
    and is used to correctly preserve quoted characters when expanding
@@ -1444,9 +1483,17 @@ make_quoted_char (c)
   char *temp;
 
   temp = xmalloc (3);
-  temp[0] = CTLESC;
-  temp[1] = c;
-  temp[2] = '\0';
+  if (c == 0)
+    {
+      temp[0] = CTLNUL;
+      temp[1] = '\0';
+    }
+  else
+    {
+      temp[0] = CTLESC;
+      temp[1] = c;
+      temp[2] = '\0';
+    }
   return (temp);
 }
 
@@ -2370,7 +2417,8 @@ parameter_brace_expand_word (name, var_is_special, quoted)
       SHELL_VAR *var = find_variable (name);
 
       if (var && !invisible_p (var) && (temp = value_cell (var)))
-	temp = quote_escapes (temp);
+	temp = quoted && temp && *temp ? quote_string (temp)
+				       : quote_escapes (temp);
     }
   return (temp);
 }
@@ -2385,7 +2433,7 @@ parameter_brace_expand_rhs (name, value, c, quoted)
 {
   WORD_LIST *l;
   char *t, *t1, *temp;
-  int i;
+  int i, lquote, hasdol;
 
   if (value[0] == '~' ||
       (strchr (value, '~') && unquoted_substring ("=~", value)))
@@ -2394,15 +2442,24 @@ parameter_brace_expand_rhs (name, value, c, quoted)
     temp = savestring (value);
 
   /* This is a hack.  A better fix is coming later. */
-  if (*temp == '"')
+  lquote = 0;
+  if (*temp == '"' && temp[strlen (temp) - 1] == '"')
     {
       i = 1;
       t = string_extract_double_quoted (temp, &i);	/* XXX */
       free (temp);
       temp = t;
+      lquote = 1;	/* XXX */
     }
-  l = *temp ? expand_string_internal (temp, quoted) : (WORD_LIST *)NULL;
+  hasdol = 0;
+  /* XXX was quoted not lquote */
+  l = *temp ? expand_string_for_rhs (temp, quoted||lquote, &hasdol, (int *)NULL)
+	    : (WORD_LIST *)NULL;
   free (temp);
+  /* expand_string_for_rhs does not dequote the word list it returns, but
+     there are a few cases in which we need to add quotes. */
+  if (lquote && quoted == 0 && hasdol == 0 && l && l->word->quoted == 0)
+    quote_list (l);
 
   if (l)
     {
@@ -2749,6 +2806,12 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 	    case '*':		/* `$*' */
 	      temp = string_rest_of_args (quoted);
 
+	      if (quoted && temp && *temp == '\0' /* && istring_index > 0 */)
+		{
+		  free (temp);
+		  temp = (char *)NULL;
+		}
+
 	      /* In the case of a quoted string, quote the entire arg-list.
 		 "$1 $2 $3". */
 	      if (quoted && temp)
@@ -2976,6 +3039,12 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 		      char *t;
 		      if (!value || !*value || !temp || !*temp)
 			break;
+		      if (quoted)
+			{
+			  t = dequote_string (temp);
+			  free (temp);
+			  temp = t;
+			}
 		      t = parameter_brace_remove_pattern (value, temp, c);
 		      free (temp);
 		      free (value);
@@ -2998,6 +3067,16 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 			      {
 				temp = parameter_brace_expand_rhs
 				  (name, value, c, quoted);
+				/* XXX - this is a hack.  A better fix is
+					 coming later. */
+				if ((value[0] == '$' && value[1] == '@') ||
+				    (value[0] == '"' && value[1] == '$' && value[2] == '@'))
+				  {
+				    if (quoted)
+				      quoted_dollar_at++;
+				    if (contains_dollar_at)
+				      *contains_dollar_at = 1;
+				  }
 				free (value);
 			      }
 			    else
@@ -3124,13 +3203,13 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 	    default:
 	      {
 		/* Find the variable in VARIABLE_LIST. */
-		int old_index = sindex;
+		int old_index;
 		char *name;
 		SHELL_VAR *var;
 
 		temp = (char *)NULL;
 
-		for (;
+		for (old_index = sindex;
 		     (c = string[sindex]) &&
 		     (isletter (c) || digit (c) || c == '_');
 		     sindex++);
@@ -3151,7 +3230,9 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 
 		if (var && !invisible_p (var) && value_cell (var))
 		  {
-		    temp = quote_escapes (value_cell (var));
+		    temp = value_cell (var);
+		    temp = quoted && temp && *temp ? quote_string (temp)
+						   : quote_escapes (temp);
 		    free (name);
 		    goto add_string;
 		  }
@@ -3490,7 +3571,14 @@ final_exit:
 	  /* According to Posix.2, "$@" expands to a single word if
 	     IFS="" and the positional parameters are not empty. */
 	  if (quoted_dollar_at && ifs_chars && *ifs_chars)
-	    temp_list = list_string (istring, " ", 1);
+	    {
+	      temp_list = list_string (istring, " ", 1);
+#if 0
+	      /* This turns quoted null strings back into CTLNULs */
+	      dequote_list (temp_list);
+	      quote_list (temp_list);
+#endif
+	    }
 	  else
 	    {
 	      WORD_DESC *tword;
@@ -4723,7 +4811,7 @@ sv_opterr (name)
 
   if (tt && *tt)
     s = atoi (tt);
-  opterr = s;
+  sh_opterr = s;
 }
 #endif /* GETOPTS_BUILTIN */
 

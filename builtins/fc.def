@@ -295,6 +295,8 @@ fc_builtin (list)
 	{
 	  histend = last_hist;
 	  histbeg = histend - 16;
+	  if (histbeg < 0)
+	    histbeg = 0;
 	}
       else
 	{

@@ -74,6 +74,7 @@ extern void word_list_remove_quoted_nulls __P((WORD_LIST *));
 extern WORD_LIST *list_string __P((char *, char *, int));
 
 extern char *get_word_from_string __P((char **, char *, char **));
+extern char *strip_trailing_ifs_whitespace __P((char *, char *, int));
 
 /* Given STRING, an assignment string, get the value of the right side
    of the `=', and bind it to the left side.  If EXPAND is true, then

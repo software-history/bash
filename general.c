@@ -620,9 +620,11 @@ canonicalize_pathname (path)
 	  i = start + 1;
 	}
 
-      /* Handle backquoted `/'. */
+#if 0
+      /* Handle backslash-quoted `/'. */
       if (start > 0 && result[start - 1] == '\\')
 	continue;
+#endif
 
       /* Check for trailing `/'. */
       if (start && !result[i])

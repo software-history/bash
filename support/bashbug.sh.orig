@@ -17,7 +17,7 @@ export PATH
 
 TEMP=/tmp/bashbug.$$
 
-BUGADDR=${1:-bug-bash@prep.ai.mit.edu}
+BUGADDR=${1-bug-bash@prep.ai.mit.edu}
 
 : ${EDITOR=emacs}
 
@@ -37,7 +37,16 @@ else
 	RMAIL=rmail
 fi
 
+if [ -f /usr/lib/sendmail ] ; then
+	RMAIL="/usr/lib/sendmail -t"
+elif [ -f /usr/sbin/sendmail ] ; then
+	RMAIL="/usr/sbin/sendmail -t"
+else
+	RMAIL=rmail
+fi
+
 cat > $TEMP <<EOF
+From: ${USER}
 From: ${USER}
 To: ${BUGADDR}
 Subject: [50 character or so descriptive subject here (for reference)]
@@ -75,7 +84,7 @@ then
 		exit
 	fi
 
-	rmail $BUGADDR < $TEMP || cat $TEMP >> $HOME/dead.bashbug
+	${RMAIL} $BUGADDR < $TEMP || cat $TEMP >> $HOME/dead.bashbug
 fi
 
 exit 0

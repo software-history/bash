@@ -23,8 +23,11 @@ to install BASH:
 
   3. Type `./bash' to see if the compile worked.
 
-  4. Type `make install bindir=/usr/gnu/bin' (or wherever you
-     keep GNU binaries) to copy bash to your binaries directory.
+  4. Type `make install prefix=/usr/gnu/' (or the appropriate root
+     of your local GNU software installation tree) to copy bash to
+     your binaries directory, assumed to be ${prefix}/bin.  This will
+     also attempt to install the manual pages under ${prefix}/man
+     and the info file under ${prefix}/info.
 
 * Menu:
 

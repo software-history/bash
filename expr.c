@@ -768,7 +768,7 @@ evalerror (msg)
     name = get_name_for_error ();
   for (t = expression; whitespace (*t); t++)
     ;
-  fprintf (stderr, "%s: %s%s: %s (remainder of expression is \"%s\")",
+  fprintf (stderr, "%s: %s: %s (remainder of expression is \"%s\")\n",
   		 name, t,
 		 msg, (lasttp && *lasttp) ? lasttp : "");
   longjmp (evalbuf, 1);

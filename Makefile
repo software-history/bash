@@ -26,7 +26,7 @@ GAWK     = awk
 # find it.  For instance, `CPPNAME=/usr/libexec/cpp' on 4.4 BSD.
 # If all else fails, set CPPNAME=$(CC) -E
 CPPNAME =
-CPP     = `/bin/sh $(CPPMAGIC) $(GETCPPSYMS) "$(CPPNAME)"` -P
+CPP     = `$(SHELL) $(CPPMAGIC) $(GETCPPSYMS) "$(CPPNAME)"` -P
 
 CPP_MAKEFILE = $(srcdir)/cpp-Makefile
 ANSI_MAKEFILE = ansi-Makefile
@@ -90,11 +90,11 @@ install uninstall newversion architecture: bash-Makefile
 		prefix=$(prefix) $@
 
 tests DEFINES tags documentation: bash-Makefile directory-frob
-	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) $@
 
-clean distclean realclean: bash-Makefile directory-frob
+clean distclean realclean mostlyclean maintainer-clean: bash-Makefile directory-frob
 	rm -f .notified
-	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) bindir=$(bindir) $@
+	$(MAKE) -f bash-Makefile $(MFLAGS) $(MAKEARGS) $@
 
 directory-frob:
 
