@@ -1,0 +1,166 @@
+*** NEWS	Wed Jul 12 10:08:44 1995
+--- NEWS	Tue Apr 11 15:47:53 1995
+***************
+*** 1,64 ****
+! This file documents the bugs fixed between this release, bash-1.14.5,
+! and the last public bash release, 1.14.4.
+  
+  1.  Bugs fixed in Bash
+  
+! a.  Fix to `fc' so that `fc -l' works when fewer than 16 commands are in
+!     the history list.
+  
+! b.  Fixes to the builtin getopt(3) and `getopts' to complete conversion
+!     from GNU glibc getopt() to internal bash getopt.
+  
+! c.  Changes to `make install' to bring it closer to GNU guidelines.
+  
+! d.  Fixes to the expansion code so that double quotes on the rhs of
+!     ${variableOPword} are handled better.
+  
+! e.  New/changed machines.h entries: Fujitsu UXP/M, Tandem
+  
+! f.  Changes to cpp-Makefile and the rest of the Makefiles to more closely
+!     adhere to the GNU coding standards.  In particular, all recommended
+!     targets should now exist.
+  
+! g.  `read' now correctly strips trailing IFS whitespace from the input line.
+  
+! h.  Reworked the documentation Makefile so that it does not use `texindex'
+!     and `tex', but rather `texi2dvi', as per the GNU coding standards
+  
+! i.  If SIGINT is not trapped, a process dying of SIGINT will cause the shell
+!     to act as if it had received SIGINT and break out of for, while, and
+!     until loops.
+  
+! j.  Fixed a bug that caused the `select' prompt to be garbled under
+!     certain conditions.
+  
+! k.  Fixed a bug that made `declare +r variable' turn off the readonly
+!     attribute for a variable.
+  
+! l.  Fixed a bug that prevented `declare -f -r function' (or other attributes)
+!     from changing the function's attributes.
+  
+! m.  Fixed a job control bug that allowed `fg' and `bg' to restart jobs
+!     that had terminated.
+  
+! n.  The pathname canonicalization code now handles filenames with backslashes
+!     embedded in them more reasonably.
+  
+! o.  Fixed a bug that caused the expression evaluator to occasionally core
+!     dump when printing an error message.
+  
+! p.  Fixed a bug that caused "$*" to sometimes leave a stray ^B in the
+!     expansion when there were no positional parameters.
+  
+! q.  Fixed a bug that caused pre-3.2v4.x SCO machines to hang waiting for
+!     waitpid(2) to return.
+  
+  2.  Bugs fixed in Readline
+  
+! a.  Fix to the display code so that null prompts don't cause core dumps.
+  
+! b.  Readline now recognizes that an $LC_CTYPE value of `ISO-8859-1' means
+!     that it should go into eight-bit mode.
+  
+! c.  Fixed a completion bug that removed user-supplied opening quotes in
+!     filenames under some circumstances.
+--- 1,97 ----
+! This file documents the bugs fixed between this release, bash-1.14.4,
+! and the last public bash release, 1.14.3.
+  
+  1.  Bugs fixed in Bash
+  
+! a.  The command history is now saved whenever an interactive shell exits,
+!     even if on hangup or error.
+  
+! b.  Newline is no longer escaped with a backslash by the filename completion
+!     quoting functions.
+  
+! c.  When building, `ranlib' is now searched for in the user's search path
+!     before attempting to find it in the file system.
+  
+! d.  `getopts' now saves state across calls to fix core dumps when parsing
+!     arguments other than the positional parameters.
+  
+! e.  The builtin getopt() has been greatly simplified, renamed sh_getopt()
+!     and is now compiled in on all machines.
+  
+! f.  The default PATH has been changed to remove the leading `.'.
+  
+! g.  The default MAILPATH needed to be changed for a few 4.4BSD-based systems.
+  
+! h.  User-changable CFLAGS can now modify all of the build parameters.
+  
+! i.  Fixed a typo that caused AFS to incorrectly report some files as
+!     executable.
+  
+! j.  Fixed a bug in pathname canonicalization that could cause core dumps.
+  
+! k.  Changes to the job control code to work around SCO kernel bugs
+!     (waitpid()).
+  
+! l.  Fixed compilation problems on machines that defined `const' in a system
+!     header file without defining `inline'.
+  
+! m.  New/changed machine descriptions:  BSD/OS 2.0, Irix 6.x, Amdahl UTS, SCO,
+!     Linux, Stratus FTX.
+  
+! n.  Fixes to make empty PS1 and PS2 work correctly.
+  
+! o.  The \[ and \] prompt escapes are not recognized unless readline has been
+!     compiled into the shell.
+  
+! p.  Fixed bad variable initialization that could cause core dumps on systems
+!     without varargs.
+  
+! q.  Fixed bug that caused `bash -c exit' to return incorrect exit status.
+! 
+! r.  Fixed bug that did not allow `PS4=' to suppress the execution trace
+!     display of `+'.
+! 
+! s.  Fixed bug so that quoting inside "${param[:][-?=+]word}" is honored.
+! 
+! t.  References without braces to unset positional parameters (`$5') now
+!     cause errors if set -u is on.
+! 
+! u.  Fixed bug so that the rhs of assignment statements is no longer word
+!     split.
+! 
+! v.  Changed calls to signal() to set_signal_handler() for Posix.1 semantics
+!     where available.
+! 
+! w.  Fixed bug that caused the exit trap to be passed to (...) subshells.
+! 
+! x.  $BASH is no longer auto-exported.
+! 
+! y.  Instances of globbing characters in completed filenames (`*', `?', `[')
+!     now cause the filename to be quoted.
+! 
+! z.  Fixed bug that caused an infinite loop if $PROMPT_COMMAND contained a
+!     syntax error.
+! 
+! aa. Bash no longer provides a default value for MAILPATH, but will search a
+!     default file for mail if MAILCHECK is set and MAIL and MAILPATH are not.
+  
+  2.  Bugs fixed in Readline
+  
+! a.  When listing filename completions, unprintable characters in filenames
+!     are now translated to ASCII
+! 
+! b.  Fixes to make empty prompt strings work correctly, instead of reusing
+!     the previously-displayed prompt.
+! 
+! c.  Use _SVR4_DISABLE if it is available and _POSIX_VDISABLE is not defined
+!     to turn off meanings of special characters like ^C
+! 
+! d.  Fixed up some functions called with incorrect arguments.
+  
+! e.  Fixed bug with `:%' history modifier so that it now inserts the
+!     string matched by the most recent !?string? search, not the string
+!     searched for.
+  
+! f.  Fixed a bug in the line updating functions that caused stray characters
+!     to be left on lines after the first if characters are removed from a
+!     wrapped line so that the line is exactly as long as the screen width.

@@ -1,0 +1,47 @@
+*** lib/readline/display.c	Fri Jul  1 11:21:17 1994
+--- lib/readline/display.c	Thu Jun  2 09:35:54 1994
+***************
+*** 562,583 ****
+     Could be made even smarter, but this works well enough */
+  static void
+! update_line (old, new, current_line, omax, nmax)
+       register char *old, *new;
+!      int current_line, omax, nmax;
+  {
+    register char *ofd, *ols, *oe, *nfd, *nls, *ne;
+!   int temp, lendiff, wsatend, od, nd;
+  
+    /* Find first difference. */
+    for (ofd = old, nfd = new;
+!        (ofd - old < omax) && *ofd && (*ofd == *nfd);
+         ofd++, nfd++)
+      ;
+  
+!   /* Move to the end of the screen line.  ND and OD are used to keep track
+!      of the distance between ne and new and oe and old, respectively, to
+!      move a subtraction out of each loop. */
+!   for (od = ofd - old, oe = ofd; od < omax && *oe; oe++, od++);
+!   for (nd = nfd - new, ne = nfd; nd < nmax && *ne; ne++, nd++);
+  
+    /* If no difference, continue to next line. */
+--- 527,546 ----
+     Could be made even smarter, but this works well enough */
+  static void
+! update_line (old, new, current_line)
+       register char *old, *new;
+!      int current_line;
+  {
+    register char *ofd, *ols, *oe, *nfd, *nls, *ne;
+!   int lendiff, wsatend;
+  
+    /* Find first difference. */
+    for (ofd = old, nfd = new;
+!        (ofd - old < screenwidth) && *ofd && (*ofd == *nfd);
+         ofd++, nfd++)
+      ;
+  
+!   /* Move to the end of the screen line. */
+!   for (oe = ofd; ((oe - old) < screenwidth) && *oe; oe++);
+!   for (ne = nfd; ((ne - new) < screenwidth) && *ne; ne++);
+  
+    /* If no difference, continue to next line. */

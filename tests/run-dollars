@@ -1,0 +1,12 @@
+echo this is a file named a > a
+echo this is a file named b > b
+
+echo expect an error message > x
+../bash ./dollar-star.sh a b >> x 2>&1
+
+echo expect two lines of output >> x
+../bash ./dollar-at.sh a b >>x 2>&1
+
+rm -f a b
+
+diff x dollar.right && rm -f x

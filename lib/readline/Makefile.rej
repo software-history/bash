@@ -1,0 +1,37 @@
+*** lib/readline/Makefile	Wed Jul 20 16:35:17 1994
+--- lib/readline/Makefile	Fri Jul  1 11:21:11 1994
+***************
+*** 88,105 ****
+  # always returns TRUE unless there really was an error installing the
+  # include files.
+! install: installdirs libreadline.a
+! 	${INSTALL_DATA} readline.h keymaps.h chardefs.h history.h \
+! 		$(incdir)/readline
+! 	-${MV} $(libdir)/libreadline.a $(libdir)/libreadline.old
+! 	${INSTALL_DATA} libreadline.a $(bindir)/libreadline.a
+! 	[ -f "$(RANLIB)" ] && $(RANLIB) -t $(bindir)/libreadline.a
+! 
+! installdirs:
+! 	[ ! -d $(incdir)/readline ] && { \
+! 	  mkdir $(incdir)/readline && chmod chmod 755 $(incdir)/readline; }
+! 
+! uninstall:
+! 	cd $(incdir)/readline && ${RM} -f ${INSTALLED_HEADERS}
+! 	cd $(libdir) && ${RM} -f libreadline.a libreadline.old
+  
+  clean:
+--- 92,105 ----
+  # always returns TRUE unless there really was an error installing the
+  # include files.
+! install:
+! 	if [ -r $(incdir)/readline ]; then \
+! 	  :; \
+! 	else \
+! 	  mkdir $(incdir)/readline && chmod a+r $(incdir)/readline; \
+! 	fi
+! 	$(CP) readline.h keymaps.h chardefs.h history.h $(incdir)/readline/
+! 	-mv $(bindir)/libreadline.a $(bindir)/libreadline.old
+! 	cp libreadline.a $(bindir)/libreadline.a
+! 	if [ -f "$(RANLIB)" ]; then $(RANLIB) -t $(bindir)/libreadline.a; fi
+  
+  clean:

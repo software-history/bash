@@ -1,0 +1,24 @@
+*** support/bashbug.sh	Sat Dec 31 16:25:40 1994
+--- support/bashbug.sh	Wed Jun 29 15:14:09 1994
+***************
+*** 30,43 ****
+  fi
+  
+- if [ -f /usr/lib/sendmail ] ; then
+- 	RMAIL="/usr/lib/sendmail -t"
+- elif [ -f /usr/sbin/sendmail ] ; then
+- 	RMAIL="/usr/sbin/sendmail -t"
+- else
+- 	RMAIL=rmail
+- fi
+- 
+  cat > $TEMP <<EOF
+- From: ${USER}
+  To: ${BUGADDR}
+  Subject: [50 character or so descriptive subject here (for reference)]
+--- 30,34 ----
+  fi
+  
+  cat > $TEMP <<EOF
+  To: ${BUGADDR}
+  Subject: [50 character or so descriptive subject here (for reference)]

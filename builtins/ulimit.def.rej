@@ -1,0 +1,21 @@
+*** builtins/ulimit.def	Mon Dec  5 14:50:10 1994
+--- builtins/ulimit.def	Sat Jul  2 20:10:41 1994
+***************
+*** 80,91 ****
+  #endif
+  
+- #if !defined (RLIMTYPE)
+- #  define RLIMTYPE long
+- #  define string_to_rlimtype string_to_long
+- #  define print_rlimtype(n, nl) printf ("%ld%s", n, nl ? "\n" : "")
+- #endif
+- 
+- static void print_long ();
+- 
+  /* **************************************************************** */
+  /*								    */
+--- 80,83 ----
+  #endif
+  
+  /* **************************************************************** */
+  /*								    */

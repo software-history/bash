@@ -1,0 +1,177 @@
+*** lib/readline/readline.c	Mon Dec  5 17:47:48 1994
+--- lib/readline/readline.c	Fri Aug 12 13:47:46 1994
+***************
+*** 285,289 ****
+      }
+  
+!   rl_visible_prompt_length = (rl_prompt && *rl_prompt) ?  rl_expand_prompt (rl_prompt) : 0;
+  
+    rl_initialize ();
+--- 285,289 ----
+      }
+  
+!   rl_visible_prompt_length = rl_expand_prompt (rl_prompt);
+  
+    rl_initialize ();
+***************
+*** 625,634 ****
+    int r = 0;
+  
+    if (META_CHAR (key) && _rl_convert_meta_chars_to_ascii)
+      {
+        if (map[ESC].type == ISKMAP)
+  	{
+- 	  if (defining_kbd_macro)
+- 	    add_macro_char (ESC);
+  	  map = FUNCTION_TO_KEYMAP (map, ESC);
+  	  key = UNMETA (key);
+--- 625,635 ----
+    int r = 0;
+  
++   if (defining_kbd_macro)
++     add_macro_char (key);
++ 
+    if (META_CHAR (key) && _rl_convert_meta_chars_to_ascii)
+      {
+        if (map[ESC].type == ISKMAP)
+  	{
+  	  map = FUNCTION_TO_KEYMAP (map, ESC);
+  	  key = UNMETA (key);
+***************
+*** 641,647 ****
+      }
+  
+-   if (defining_kbd_macro)
+-     add_macro_char (key);
+- 
+    switch (map[key].type)
+      {
+--- 642,645 ----
+      }
+  
+    switch (map[key].type)
+      {
+***************
+*** 924,927 ****
+  rl_initialize ()
+  {
+    /* If we have never been called before, initialize the
+       terminal and data structures. */
+--- 922,927 ----
+  rl_initialize ()
+  {
++   char *t;
++ 
+    /* If we have never been called before, initialize the
+       terminal and data structures. */
+***************
+*** 940,943 ****
+    rl_done = 0;
+  
+    /* Tell the history routines what is going on. */
+    start_using_history ();
+--- 940,953 ----
+    rl_done = 0;
+  
++   /* Check for LC_CTYPE and use its value to decide the defaults for
++      8-bit character input and output. */
++   t = getenv ("LC_CTYPE");
++   if (t && (strcmp (t, "iso-8859-1") == 0 || strcmp (t, "iso_8859_1") == 0))
++     {
++       _rl_meta_flag = 1;
++       _rl_convert_meta_chars_to_ascii = 0;
++       _rl_output_meta_chars = 1;
++     }
++       
+    /* Tell the history routines what is going on. */
+    start_using_history ();
+***************
+*** 959,964 ****
+  readline_initialize_everything ()
+  {
+-   char *t;
+- 
+    /* Find out if we are running in Emacs. */
+    running_in_emacs = getenv ("EMACS") != (char *)0;
+--- 969,972 ----
+  readline_initialize_everything ()
+  {
+    /* Find out if we are running in Emacs. */
+    running_in_emacs = getenv ("EMACS") != (char *)0;
+***************
+*** 991,1004 ****
+    rl_initialize_funmap ();
+  
+-   /* Check for LC_CTYPE and use its value to decide the defaults for
+-      8-bit character input and output. */
+-   t = getenv ("LC_CTYPE");
+-   if (t && (strcmp (t, "iso-8859-1") == 0 || strcmp (t, "iso_8859_1") == 0))
+-     {
+-       _rl_meta_flag = 1;
+-       _rl_convert_meta_chars_to_ascii = 0;
+-       _rl_output_meta_chars = 1;
+-     }
+-       
+    /* Read in the init file. */
+    rl_read_init_file ((char *)NULL);
+--- 999,1002 ----
+    rl_initialize_funmap ();
+  
+    /* Read in the init file. */
+    rl_read_init_file ((char *)NULL);
+***************
+*** 1712,1719 ****
+        to = t;
+      }
+- 
+-   if (to > rl_end)
+-     to = rl_end;
+- 
+    text = rl_copy_text (from, to);
+  
+--- 1710,1713 ----
+        to = t;
+      }
+    text = rl_copy_text (from, to);
+  
+***************
+*** 2267,2281 ****
+      {
+        int orig_point = rl_point;
+-       if (count <= 0)
+- 	count = 1;
+  
+!       while (count--)
+! 	{
+! 	  while (rl_point && whitespace (the_line[rl_point - 1]))
+! 	    rl_point--;
+  
+! 	  while (rl_point && !whitespace (the_line[rl_point - 1]))
+! 	    rl_point--;
+! 	}
+  
+        rl_kill_text (orig_point, rl_point);
+--- 2261,2270 ----
+      {
+        int orig_point = rl_point;
+  
+!       while (rl_point && whitespace (the_line[rl_point - 1]))
+! 	rl_point--;
+  
+!       while (rl_point && !whitespace (the_line[rl_point - 1]))
+! 	rl_point--;
+  
+        rl_kill_text (orig_point, rl_point);
+***************
+*** 2398,2402 ****
+  
+  	default:
+! 	  ding ();
+  	  return -1;
+  	}
+--- 2387,2391 ----
+  
+  	default:
+! 	  abort ();
+  	  return -1;
+  	}

@@ -1,0 +1,27 @@
+*** support/mksysdefs	Fri Jul  1 11:21:29 1994
+--- support/mksysdefs	Thu Jun  2 09:36:14 1994
+***************
+*** 35,43 ****
+  fi
+  
+! # check for versions of SunOS 
+! case "${UNAME}${RELEASE}" in
+! SunOS4) SYSDEF=SunOS4 ;;
+! SunOS5) SYSDEF=SunOS5 ;;
+! esac
+  
+  # Test for NeXT
+--- 27,39 ----
+  fi
+  
+! # Test for shared libraries (this is pretty Sunish).
+! if [ -f /lib/ld.so ]; then
+!   SHLIB=-DHAVE_SHARED_LIBS
+!   echo ""					>>$sysdefs
+!   echo "#define HAVE_SHARED_LIBS"		>>$sysdefs
+!   if [ "${UNAME}${RELEASE}" = "SunOS5" ]; then
+!      SYSDEF=USGr4
+!   fi
+! fi
+  
+  # Test for NeXT
