@@ -32,11 +32,13 @@ typedef char **CPPFunction ();
 #endif /* _FUNCTION_DEF */
 
 /* Some stream `types'. */
+#define st_none   0
 #define st_stream 1
 #define st_string 2
+#define st_stdin  3
 
 #if defined (BUFFERED_INPUT)
-#define st_bstream 3
+#define st_bstream 4
 
 /* Possible values for b_flag. */
 #define B_EOF		0x1

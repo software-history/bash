@@ -48,7 +48,7 @@ extern void set_sigchld_trap __P((char *));
 extern void set_signal __P((int, char *));
 extern void restore_default_signal __P((int));
 extern void ignore_signal __P((int));
-extern void run_exit_trap __P((void));
+extern int run_exit_trap __P((void));
 extern void free_trap_strings __P((void));
 extern void reset_signal_handlers __P((void));
 extern void restore_original_signals __P((void));
@@ -60,5 +60,6 @@ extern void run_interrupt_trap __P((void));
 extern int maybe_call_trap_handler __P((int));
 extern int signal_is_trapped __P((int));
 extern int signal_is_special __P((int));
+extern int signal_is_ignored __P((int));
 
 #endif /* __TRAP_H__ */

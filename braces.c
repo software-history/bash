@@ -226,7 +226,7 @@ brace_gobbler (text, indx, satisfy)
 
       /* A backslash escapes the next character.  This allows backslash to
 	 escape the quote character in a double-quoted string. */
-      if (c == '\\' && (quoted == '"' || quoted == '`'))
+      if (c == '\\' && (quoted == 0 || quoted == '"' || quoted == '`'))
         {
           pass_next = 1;
           continue;
@@ -290,7 +290,7 @@ array_concat (arr1, arr2)
     return (copy_array (arr2));
 
   if (!arr2)
-    return (arr1);
+    return (copy_array (arr1));
 
   len1 = array_len (arr1);
   len2 = array_len (arr2);

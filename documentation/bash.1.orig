@@ -373,6 +373,9 @@ of items.  The variable \fIname\fP is set to each element of this list
 in turn, and \fIlist\fP is executed each time.  If the \fBin\fP
 \fIword\fP is omitted, the \fBfor\fP command executes \fIlist\fP 
 once for each positional parameter that is set (see
+.SM
+.B PARAMETERS
+below).
 .TP
 \fBselect\fP \fIname\fP [ \fBin\fP \fIword\fP; ] \fBdo\fP \fIlist\fP ; \fBdone\fP
 The list of words following \fBin\fP is expanded, generating a list
@@ -2869,6 +2872,12 @@ insert the \fIn\fPth word from the previous command (the words
 in the previous command begin with word 0).  A negative argument
 inserts the \fIn\fPth word from the end of the previous command.
 .TP
+.B
+yank\-last\-arg (M\-.\^, M\-_\^)
+Insert the last argument to the previous command (the last word on
+the previous line).  With an argument,
+behave exactly like @code{yank-nth-arg}.
+.TP
 .B shell\-expand\-line (M\-C\-e)
 Expand the line the way the shell does when it reads it.  This
 performs alias and history expansion as well as all of the shell
@@ -2884,12 +2893,7 @@ Perform history expansion on the current line.  See
 below for a description of history expansion.
 .TP
 .B insert\-last\-argument (M\-.\^, M\-_\^)
-Insert the last argument to the previous command (the last word on
-the previous line).  With an argument
-.IR n ,
-insert the \fIn\fPth word from the previous command (the words
-in the previous command begin with word 0).  A negative argument
-inserts the \fIn\fPth word from the end of the previous command.
+A synonym for \fByank\-last\-arg\fP.
 .TP
 .B operate-and-get-next (C\-o)
 Accept the current line for execution and fetch the next line
@@ -5264,9 +5268,9 @@ files are read.
 .TP
 \fIBash Features\fP, Brian Fox and Chet Ramey
 .TP
-\fIThe Gnu Readline Library\fP, Brian Fox
+\fIThe Gnu Readline Library\fP, Brian Fox and Chet Ramey
 .TP
-\fIThe Gnu History Library\fP, Brian Fox
+\fIThe Gnu History Library\fP, Brian Fox and Chet Ramey
 .TP
 \fIA System V Compatible Implementation of 4.2\s-1BSD\s+1 Job Control\fP, David Lennert
 .TP

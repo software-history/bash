@@ -73,8 +73,8 @@ extern char *strcpy ();
 #define whitespace(c) (((c) == ' ') || ((c) == '\t'))
 #endif
 
-#ifndef digit
-#define digit(c)  ((c) >= '0' && (c) <= '9')
+#ifndef digit_p
+#define digit_p(c)  ((c) >= '0' && (c) <= '9')
 #endif
 
 #ifndef digit_value
@@ -119,7 +119,7 @@ static HIST_ENTRY **the_history = (HIST_ENTRY **)NULL;
 
 /* Non-zero means that we have enforced a limit on the amount of
    history that we save. */
-int history_stifled = 0;
+static int history_stifled = 0;
 
 /* If HISTORY_STIFLED is non-zero, then this is the maximum number of
    entries to remember. */
@@ -170,6 +170,9 @@ history_get_history_state ()
   state->offset = history_offset;
   state->length = history_length;
   state->size = history_size;
+  state->flags = 0;
+  if (history_stifled)
+    state->flags |= HS_STIFLED;
 
   return (state);
 }
@@ -183,6 +186,8 @@ history_set_history_state (state)
   history_offset = state->offset;
   history_length = state->length;
   history_size = state->size;
+  if (state->flags & HS_STIFLED)
+    history_stifled = 1;
 }
 
 /* Begin a session in which the history functions might be used.  This
@@ -490,6 +495,12 @@ unstifle_history ()
     }
 
   return (result);
+}
+
+int
+history_is_stifled ()
+{
+  return (history_stifled);
 }
 
 /* Return the string that should be used in the place of this
@@ -927,10 +938,10 @@ get_history_event (string, caller_index, delimiting_quote)
       i++;
     }
 
-  if (digit (string[i]))
+  if (digit_p (string[i]))
     {
       /* Get the extent of the digits and compute the value. */
-      for (which = 0; digit (string[i]); i++)
+      for (which = 0; digit_p (string[i]); i++)
 	which = (which * 10) + digit_value (string[i]);
 
       *caller_index = i;
@@ -1500,7 +1511,7 @@ history_expand_internal (string, start, end_index_ptr, ret_string, current_line)
 
   n = strlen (temp);
   if (n > result_len)
-    result = xrealloc (result, n + 1);
+    result = xrealloc (result, n + 2);
   strcpy (result, temp);
   free (temp);
 
@@ -1527,8 +1538,12 @@ history_expand_internal (string, start, end_index_ptr, ret_string, current_line)
 	  { \
 	    int sl = strlen (s); \
 	    j += sl; \
-	    while (j >= result_len) \
-	      result = xrealloc (result, result_len += 128); \
+	    if (j >= result_len) \
+	      { \
+	        while (j >= result_len) \
+	          result_len += 128; \
+	        result = xrealloc (result, result_len); \
+	      } \
 	    strcpy (result + j - sl, s); \
 	  } \
 	while (0)
@@ -1536,7 +1551,7 @@ history_expand_internal (string, start, end_index_ptr, ret_string, current_line)
 #define ADD_CHAR(c) \
 	do \
 	  { \
-	    if (j >= result_len) \
+	    if (j >= result_len - 1) \
 	      result = xrealloc (result, result_len += 64); \
 	    result[j++] = c; \
 	    result[j] = '\0'; \
@@ -1816,9 +1831,9 @@ get_history_word_specifier (spec, from, caller_index)
     first = 0;
   else if (spec[i] == '^')
     first = 1;
-  else if (digit (spec[i]) && expecting_word_spec)
+  else if (digit_p (spec[i]) && expecting_word_spec)
     {
-      for (first = 0; digit (spec[i]); i++)
+      for (first = 0; digit_p (spec[i]); i++)
 	first = (first * 10) + digit_value (spec[i]);
     }
   else
@@ -1835,9 +1850,9 @@ get_history_word_specifier (spec, from, caller_index)
     {
       i++;
 
-      if (digit (spec[i]))
+      if (digit_p (spec[i]))
 	{
-	  for (last = 0; digit (spec[i]); i++)
+	  for (last = 0; digit_p (spec[i]); i++)
 	    last = (last * 10) + digit_value (spec[i]);
 	}
       else if (spec[i] == '$')

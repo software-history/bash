@@ -32,8 +32,8 @@
 extern char *sys_siglist[];
 #endif /* !Solaris && !Linux && !__BSD_4_4__ && !Minix && !NetBSD && !FreeBSD */
 
-#if !defined (strsignal) && !defined (Solaris)
+#if !defined (strsignal) && !defined (Solaris) && !defined (NetBSD)
 #  define strsignal(sig) (char *)sys_siglist[sig]
-#endif /* !strsignal */
+#endif /* !strsignal && !Solaris && !NetBSD */
 
 #endif /* _SIGLIST_H */

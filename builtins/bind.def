@@ -162,7 +162,7 @@ bind_builtin (list)
     {
       if (rl_read_init_file (initfile) != 0)
 	{
-	  builtin_error ("cannot read %s: %s\n", initfile, strerror (errno));
+	  builtin_error ("cannot read %s: %s", initfile, strerror (errno));
 	  BIND_RETURN (EXECUTION_FAILURE);
 	}
     }
@@ -177,10 +177,10 @@ bind_builtin (list)
       list = list->next;
     }
 
+ bind_exit:
   if (saved_keymap)
     rl_set_keymap (saved_keymap);
 
- bind_exit:
   rl_outstream = old_rl_outstream;
   return (return_code);
 }

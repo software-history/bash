@@ -46,7 +46,7 @@ $END
 #if !defined (errno)
 extern int errno;
 #endif /* !errno */
-extern int interactive;
+extern int interactive, subshell_environment;
 extern REDIRECT *redirection_undo_list;
 
 int
@@ -127,7 +127,8 @@ exec_builtin (list)
       restore_original_signals ();
 
 #if defined (JOB_CONTROL)
-      end_job_control ();
+      if (subshell_environment == 0)
+	end_job_control ();
 #endif /* JOB_CONTROL */
 
       shell_execve (command, args, export_env);
@@ -146,8 +147,12 @@ exec_builtin (list)
       if (command)
 	free (command);
 
-      if (!interactive && !find_variable ("no_exit_on_failed_exec"))
+      if (subshell_environment ||
+	  (!interactive && !find_variable ("no_exit_on_failed_exec")))
 	exit (exit_value);
+
+      initialize_traps ();
+      reinitialize_signals ();
 
 #if defined (JOB_CONTROL)
       restart_job_control ();

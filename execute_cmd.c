@@ -456,8 +456,11 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
 	  /* If we were explicitly placed in a subshell with (), we need
 	     to do the `shell cleanup' things, such as running traps[0]. */
-	  if (user_subshell)
-	    run_exit_trap ();
+	  if (user_subshell && signal_is_trapped (0))
+	    {
+	      last_command_exit_value = return_code;
+	      return_code = run_exit_trap ();
+	    }
 
 	  exit (return_code);
 	}
@@ -1026,7 +1029,7 @@ execute_for_command (for_command)
   loop_level++;
   identifier = for_command->name->word;
 
-  list = releaser = expand_words (for_command->map_list);
+  list = releaser = expand_words_no_vars (for_command->map_list);
 
   begin_unwind_frame ("for");
   add_unwind_protect (dispose_words, releaser);
@@ -1110,6 +1113,8 @@ print_index_and_element (len, ind, list)
   register WORD_LIST *l;
   register int i;
 
+  if (list == 0)
+    return (0);
   i = ind;
   l = list;
   while (l && --i)
@@ -1145,11 +1150,17 @@ print_select_list (list, list_len, max_elem_len, indices_len)
   int ind, row, elem_len, pos, cols, rows;
   int first_column_indices_len, other_indices_len;
 
+  if (list == 0)
+    {
+      putc ('\n', stderr);
+      return;
+    }
+
   cols = COLS / max_elem_len;
   if (cols == 0)
     cols = 1;
-  rows = list_len / cols + (list_len % cols != 0);
-  cols = list_len / rows + (list_len % rows != 0);
+  rows = list_len ? list_len / cols + (list_len % cols != 0) : 1;
+  cols = list_len ? list_len / rows + (list_len % rows != 0) : 1;
 
   if (rows == 1)
     {
@@ -1269,7 +1280,14 @@ execute_select_command (select_command)
 
   /* command and arithmetic substitution, parameter and variable expansion,
      word splitting, pathname expansion, and quote removal. */
-  list = releaser = expand_words (select_command->map_list);
+  list = releaser = expand_words_no_vars (select_command->map_list);
+  list_len = list_length (list);
+  if (list == 0 || list_len == 0)
+    {
+      if (list)
+	dispose_words (list);
+      return (EXECUTION_SUCCESS);
+    }
 
   begin_unwind_frame ("select");
   add_unwind_protect (dispose_words, releaser);
@@ -1286,7 +1304,6 @@ execute_select_command (select_command)
   if (select_command->flags & CMD_IGNORE_RETURN)
     select_command->action->flags |= CMD_IGNORE_RETURN;
 
-  list_len = list_length (list);
   ps3_prompt = get_string_value ("PS3");
   if (!ps3_prompt)
     ps3_prompt = "#? ";
@@ -3309,15 +3326,17 @@ find_user_command_internal (name, flags)
      char *name;
      int flags;
 {
-  char *path_list = (char *)NULL;
+  char *path_list;
   SHELL_VAR *var;
 
   /* Search for the value of PATH in both the temporary environment, and
      in the regular list of variables. */
   if (var = find_variable_internal ("PATH", 1))
     path_list = value_cell (var);
+  else
+    path_list = (char *)NULL;
 
-  if (!path_list)
+  if (path_list == 0 || *path_list == '\0')
     return (savestring (name));
 
   return (find_user_command_in_path (name, path_list, flags));

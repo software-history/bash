@@ -72,8 +72,11 @@
    Here is a macro which accepts newlines, tabs and spaces as whitespace. */
 #define cr_whitespace(c) (whitespace(c) || ((c) == '\n'))
 
+extern char	*this_command_name;
+
 static char	*expression = (char *) NULL;	/* The current expression */
 static char	*tp = (char *) NULL;		/* token lexical position */
+static char	*lasttp;
 static int	curtok = 0;			/* the current token */
 static int	lasttok = 0;			/* the previous token */
 static int	assigntok = 0;			/* the OP in OP= */
@@ -655,7 +658,7 @@ readtok ()
   if (c)
     cp++;
 	
-  tp = cp - 1;
+  lasttp = tp = cp - 1;
 
   if (c == '\0')
     {
@@ -758,8 +761,16 @@ static void
 evalerror (msg)
      char *msg;
 {
-  builtin_error ("%s: %s (remainder of expression is \"%s\")",
-		 expression, msg, (tp && *tp) ? tp : "");
+  char *name, *t;
+
+  name = this_command_name;
+  if (name == 0)
+    name = get_name_for_error ();
+  for (t = expression; whitespace (*t); t++)
+    ;
+  fprintf (stderr, "%s: %s%s: %s (remainder of expression is \"%s\")",
+  		 name, t,
+		 msg, (lasttp && *lasttp) ? lasttp : "");
   longjmp (evalbuf, 1);
 }
 

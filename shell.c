@@ -794,7 +794,8 @@ main (argc, argv, env)
 
   exit_shell:
   /* Do trap[0] if defined. */
-  run_exit_trap ();
+  if (signal_is_trapped (0))
+    last_command_exit_value = run_exit_trap ();
 
 #if defined (PROCESS_SUBSTITUTION)
   unlink_fifo_list ();
@@ -832,7 +833,8 @@ run_startup_files ()
 	{
 	  /* We don't execute .bashrc for login shells. */
           no_rc++;
-          maybe_execute_file (SYS_PROFILE, 1);
+	  if (no_profile == 0)
+	    maybe_execute_file (SYS_PROFILE, 1);
         }
 
       if (login_shell && !no_profile)
@@ -876,7 +878,7 @@ run_startup_files ()
 
    /* Try a TMB suggestion.  If running a script, then execute the
       file mentioned in the ENV variable. */
-   if (!privileged_mode && sourced_env++ == 0 &&
+   if (!privileged_mode && sourced_env++ == 0 && act_like_sh == 0 &&
        (posixly_correct || !interactive_shell))
     {
       char *env_file = (char *)NULL;
@@ -1032,8 +1034,9 @@ run_one_command (command)
 	  /* Some kind of throw to top_level has occured. */
 	case FORCE_EOF:
 	case EXITPROG:
+	  return last_command_exit_value = 127;
 	case DISCARD:
-	  return 0;
+	  return last_command_exit_value = 1;
 	default:
 	  programming_error ("Bad jump %d", code);
 	}
@@ -1059,7 +1062,7 @@ reader_loop ()
       unlink_fifo_list ();
 #endif /* PROCESS_SUBSTITUTION */
 
-      if (interactive_shell)
+      if (interactive_shell && signal_is_ignored (SIGINT) == 0)
 	set_signal_handler (SIGINT, sigint_sighandler);
 
       if (code != NOT_JUMPED)
@@ -1082,6 +1085,7 @@ reader_loop ()
 		  dispose_command (current_command);
 		  current_command = (COMMAND *)NULL;
 		}
+	      last_command_exit_value = 1;
 	      break;
 
 	    default:
@@ -1182,7 +1186,7 @@ parse_command ()
   /* Allow the execution of a random command just before the printing
      of each primary prompt.  If the shell variable PROMPT_COMMAND
      is set then the value of it is the command to execute. */
-  if (interactive)
+  if (interactive && bash_input.type != st_string)
     {
       char *command_to_execute;
 
@@ -1380,6 +1384,13 @@ initialize_signals ()
 #endif
 }
 
+void
+reinitialize_signals ()
+{
+  initialize_terminating_signals ();
+  initialize_job_signals ();
+}
+
 /* A structure describing a signal that terminates the shell if not
    caught.  The orig_handler member is present so children can reset
    these signals back to their original handlers. */
@@ -1498,7 +1509,7 @@ termination_unwind_protect (sig)
 #endif /* HISTORY */
 
 #if defined (JOB_CONTROL)
-  if (interactive && login_shell && sig == SIGHUP)
+  if (interactive && sig == SIGHUP)
     hangup_all_jobs ();
   end_job_control ();
 #endif /* JOB_CONTROL */

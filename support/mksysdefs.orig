@@ -4,9 +4,18 @@
 # helping to describe the operating system features.  We just take guesses
 # by looking at random files.
 
-case "$1" in
--s)	shift; srcdir=$1; shift ;;
-esac
+# Removes any inherited definitions.
+SYSDEF=
+MAKE_ANSI=
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	-s)	shift; srcdir=$1; shift ;;
+	-i)	shift; incdir="$1"; shift ;;
+	-A)	shift; MAKE_ANSI=true ;;
+	*)	break ;;
+	esac
+done
 
 if [ -n "$1" ]; then
   sysdefs=$1
@@ -27,16 +36,14 @@ echo ""								   >>$sysdefs
 echo "#if !defined (_SYSDEFS_H_)"				   >>$sysdefs
 echo "#  define _SYSDEFS_H_"					   >>$sysdefs
 
-# Removes any inherited definitions.
-SHLIB=
-SYSDEF=
-MAKE_ANSI=
-
-if [ -f /usr/bin/uname ] || [ -f /bin/uname ]; then
+# was if [ -f /usr/bin/uname ] || [ -f /bin/uname ]
+if ( uname >/dev/null 2>&1 ) 2>/dev/null
+then
 	UNAME=`uname`
 	UNAME_R=`uname -r 2>/dev/null`
 	UNAME_M=`uname -m 2>/dev/null`
 	UNAME_V=`uname -v 2>/dev/null`
+	UNAME_S=`uname -s 2>/dev/null`
 	RELEASE=`expr "$UNAME_R" : '[^0-9]*\([0-9]*\)'`
 	case "$RELEASE" in
 	"")	RELEASE=0 ;;
@@ -47,8 +54,8 @@ fi
 
 # check for versions of SunOS and BSD/OS
 case "${UNAME}${RELEASE}" in
-SunOS4) SYSDEF=SunOS4 ;;
-SunOS5) SYSDEF=SunOS5 ;;
+SunOS4*) SYSDEF=SunOS4 ;;
+SunOS5*) SYSDEF=SunOS5 ;;
 BSD/OS2*) SYSDEF=BSDI2 ;;
 esac
 
@@ -64,13 +71,13 @@ esac
 
 # Test for shared libraries (this is pretty sVr4ish).
 if [ -f /usr/ccs/lib/libc.so ]; then
-  SHLIB=-DHAVE_SHARED_LIBS
-  echo ""					>>$sysdefs
-  echo "#if !defined (HAVE_SHARED_LIBS)"	>>$sysdefs
-  echo "#  define HAVE_SHARED_LIBS"		>>$sysdefs
-  echo "#endif /* HAVE_SHARED_LIBS */"	>>$sysdefs
-
   SYSDEF=USGr4
+fi
+
+# Some versions of i386 SVR4.2 make `uname' equivalent to `uname -n', which
+# is contrary to all other versions of uname
+if [ -n "$UNAME" ] && [ "$UNAME_S" != "$UNAME" ] && [ "$UNAME_S" = UNIX_SV ]; then
+	UNAME=UNIX_SV
 fi
 
 # another check for SVR4 on 386 or 486 machines
@@ -184,14 +191,6 @@ if [ -f /unix ]; then
     SYSDEF="amiga"		# An Amiga running V.4.
   elif [ -f /bin/fxc.info ]; then
     SYSDEF="alliant"
-  else
-    if [ -f /shlib/libc_s ]; then
-      SHLIB=-DHAVE_SHARED_LIBS
-      echo ""					>>$sysdefs
-      echo "#if !defined (HAVE_SHARED_LIBS)"	>>$sysdefs
-      echo "#  define HAVE_SHARED_LIBS"		>>$sysdefs
-      echo "#endif /* HAVE_SHARED_LIBS */"	>>$sysdefs
-    fi
   fi
 fi
 
@@ -241,7 +240,7 @@ fi
 
 # What release of SCO Unix is this?
 if [ "$SYSDEF" = "" -a -f /bin/uname ]; then
-  case `uname -X 2>/dev/null | grep '^Release' 2>/dev/null` in
+  case `/bin/uname -X 2>/dev/null | grep '^Release' 2>/dev/null` in
     *3.2v4.*) SCOREL=SCOv4 ;;
 	   *) SCOREL= ;;
   esac
@@ -257,10 +256,8 @@ fi
 #
 # Default to cadmus for unknown SysVish systems
 #
-if [ -f /unix ]; then
-  if [ "$SYSDEF" = "" ]; then
-    SYSDEF="cadmus"
-  fi
+if [ -f /unix ] && [ "$SYSDEF" = "" ]; then
+  SYSDEF="cadmus"
 fi
 
 if [ "$SYSDEF" != "" ]; then
@@ -275,10 +272,14 @@ fi
 
 # Add any other directories where include files are found to this list or
 # create another case
-case "$SYSDEF" in
-RISCos*) dirlist="/bsd43/usr/include";;
-*) dirlist="/usr/include /usr/include/bsd /usr/include/ansi" ;;
-esac
+if [ -n "$incdir" ]; then
+	dirlist="$incdir"
+else
+	case "$SYSDEF" in
+	RISCos*) dirlist="/bsd43/usr/include";;
+	*) dirlist="/usr/include /usr/include/bsd /usr/include/ansi" ;;
+	esac
+fi
 
 # Code fragment to be executed to find a particular include file.  Make sure
 # to set `file' to the pathname of the file you want, relative to /usr/include,
@@ -448,30 +449,37 @@ if [ -n "$HAVE_BISON" ]; then
   echo "#  define HAVE_BISON"			>>$sysdefs
   echo "#endif /* HAVE_BISON */"		>>$sysdefs
 fi
-	
-# If the user is using a recent Bash already, let's compile with that
-# as the $SHELL for Make.
+
+# Functions to test for a la autoconf
+#	getwd
+#	getcwd
+#	strchr
+#	strcasecmp
+#	getgroups
+#	setlinebuf
+#	strerror
+#	vfprintf
+#	bcopy
+#	getdtablesize
+#	setdtablesize
+#	alloca
+#	gethostname
+#	memmove (missing)
+#	mkfifo (missing)
 #
-# I stopped doing this because "make install" mv's the existing shell to
-# a new name before copying the new shell over.  Since the existing shell
-# is moved, there is no shell to do the "cp" command!
-# BashVersion=
-# 
-# if [ "$BASH" != "" ]; then
-#   if [ -f "$BASH" ]; then
-#      BashVersion=`$BASH -norc -c 'echo $BASH_VERSION' 2>/dev/null`
-#   fi
-# 
-#   if [ `expr $BashVersion \> 1.10 2>/dev/null` = "1" ]; then
-#     echo ""					>>$sysdefs
-#     echo "#define MAKE_SHELL $BASH"		>>$sysdefs
-#     echo "Bash will be compiled with \$SHELL = $BASH!"
-#   fi
-# fi
+# Other things to test
+#	opendir robustness
+#	dup2 working
+#	void sighandler
+#	sys_siglist[]
+#	uid_t, gid_t
+#	have_getpw_decls
+#	reversed setvbuf args
+#	int getgroups
 
 # If this system's cpp might not like `/**/#' in cpp-Makefile, make an
 # alternate ansi-style cpp-Makefile.
-if [ "$MAKE_ANSI" = "true" ]; then
+if [ -n "$MAKE_ANSI" ]; then
    grep -v '/\*\*/' ${srcdir}/cpp-Makefile >ansi-Makefile
 fi
 

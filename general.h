@@ -63,6 +63,10 @@
 #define digit_value(c) ((c) - '0')
 #endif
 
+/* Definitions used in subst.c and by the `read' builtin for field
+   splitting. */
+#define spctabnl(c)	((c) == ' ' || (c) == '\t' || (c) == '\n')
+
 #if !defined (__STDC__) && !defined (strchr)
 extern char *strchr (), *strrchr ();
 #endif /* !strchr */
@@ -111,7 +115,7 @@ typedef struct {
 #define STREQN(a, b, n) ((a)[0] == (b)[0] && strncmp(a, b, n) == 0)
 
 /* More convenience definitions that possibly save system or libc calls. */
-#define STRLEN(s) ((s)[0] ? ((s)[1] ? ((s)[2] ? strlen(s) : 2) : 1) : 0)
+#define STRLEN(s) (((s) && (s)[0]) ? ((s)[1] ? ((s)[2] ? strlen(s) : 2) : 1) : 0)
 #define FREE(s)  do { if (s) free (s); } while (0)
 #define MEMBER(c, s) (((c) && !(s)[1] && c == s[0]) || (member(c, s)))
 
@@ -206,6 +210,11 @@ extern void tilde_initialize __P((void));
 
 #if !defined (strerror)
 extern char *strerror __P((int));
+#endif
+
+#if defined (RLIMTYPE)
+extern RLIMTYPE string_to_rlimtype __P((char *));
+extern void print_rlimtype __P((RLIMTYPE, int));
 #endif
 
 #if !defined (HAVE_STRCASECMP)

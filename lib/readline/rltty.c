@@ -22,6 +22,10 @@
    675 Mass Ave, Cambridge, MA 02139, USA. */
 #define READLINE_LIBRARY
 
+#if defined (HAVE_CONFIG_H)
+#  include "config.h"
+#endif
+
 #include <sys/types.h>
 #include <signal.h>
 #include <errno.h>
@@ -143,6 +147,7 @@ control_meta_key (on)
     }
 }
 
+#if 0
 static void
 control_keypad (on)
      int on;
@@ -152,6 +157,7 @@ control_keypad (on)
   else if (!on && term_ke)
     tputs (term_ke, 1, outchar);
 }
+#endif
 
 /* **************************************************************** */
 /*								    */
@@ -375,6 +381,7 @@ get_tty_settings (tty, tiop)
      int tty;
      TIOTYPE *tiop;
 {
+  int ioctl_ret;
 #if !defined (SHELL) && defined (TIOCGWINSZ)
   struct winsize w;
 
@@ -384,12 +391,12 @@ get_tty_settings (tty, tiop)
 
   /* Keep looping if output is being flushed after a ^O (or whatever
      the flush character is). */
-  while (GETATTR (tty, tiop) < 0 || OUTPUT_BEING_FLUSHED (tiop))
+  while ((ioctl_ret = GETATTR (tty, tiop)) < 0 || OUTPUT_BEING_FLUSHED (tiop))
     {
+      if (ioctl_ret < 0 && errno != EINTR)
+	return -1;
       if (OUTPUT_BEING_FLUSHED (tiop))
         continue;
-      if (errno != EINTR)
-	return -1;
       errno = 0;
     }
   return 0;
@@ -522,7 +529,9 @@ rl_prep_terminal (meta_flag)
     }
 
   control_meta_key (1);
+#if 0
   control_keypad (1);
+#endif
   fflush (rl_outstream);
   terminal_prepped = 1;
 
@@ -544,7 +553,9 @@ rl_deprep_terminal ()
   block_sigint ();
 
   control_meta_key (0);
+#if 0
   control_keypad (0);
+#endif
   fflush (rl_outstream);
 
   if (set_tty_settings (tty, &otio) < 0)

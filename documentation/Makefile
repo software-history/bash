@@ -106,12 +106,12 @@ distclean:
 realclean:	clean
 
 install: all
-	[ -d $(mandir) ] || mkdir $(mandir)
+	-[ -d $(mandir) ] || mkdir $(mandir)
 	$(INSTALL_DATA) bash.1 $(mandir)
 	sed 's:so bash.1:so man1/bash.1:' < builtins.1 > $(mandir)/bash_builtins.1
-	[ -d $(man3dir) ] || mkdir $(man3dir)
+	-[ -d $(man3dir) ] || mkdir $(man3dir)
 	$(INSTALL_DATA) readline.3 $(man3dir)
-	[ -d $(infodir) ] || mkdir $(infodir)
+	-[ -d $(infodir) ] || mkdir $(infodir)
 	$(INSTALL_DATA) features.info $(infodir)/bash.info
 
 uninstall:

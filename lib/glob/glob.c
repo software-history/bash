@@ -431,10 +431,14 @@ glob_filename (pathname)
       if (directories == NULL)
 	goto memory_error;
       else if (directories == (char **)&glob_error_return)
-	return ((char **) &glob_error_return);
+	{
+	  free ((char *)result);
+	  return ((char **) &glob_error_return);
+	}
       else if (*directories == NULL)
 	{
 	  free ((char *) directories);
+	  free ((char *) result);
 	  return ((char **) &glob_error_return);
 	}
 

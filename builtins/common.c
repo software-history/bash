@@ -46,6 +46,7 @@
 
 extern int no_symbolic_links, interactive, interactive_shell;
 extern int indirection_level, startup_state;
+extern int last_command_exit_value;
 extern int hashing_disabled;
 extern int variable_context;
 extern char *this_command_name, *shell_name;
@@ -430,7 +431,7 @@ get_working_directory (for_whom)
 	  else
 	    fprintf (stderr, "%s: ", get_name_for_error ());
 
-	  fprintf (stderr, "could not get current directory: %s\n\r",
+	  fprintf (stderr, "could not get current directory: %s\n",
 		   the_current_working_directory);
 
 	  free (the_current_working_directory);
@@ -615,7 +616,9 @@ parse_and_execute (string, from_file, interact)
 		goto out;
 
 	      case DISCARD:
+	        dispose_command (command);
 		run_unwind_frame ("pe_dispose");
+		last_command_exit_value = 1;
 		continue;
 
 	      default:

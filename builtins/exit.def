@@ -1,5 +1,5 @@
 This file is exit.def, from which is created exit.c.
-It implements the builtins "bye" and  "exit", and "logout" in Bash.
+It implements the builtins "exit" and "logout" in Bash.
 
 Copyright (C) 1987, 1989, 1991 Free Software Foundation, Inc.
 
@@ -39,6 +39,7 @@ extern int interactive, login_shell;
 extern int last_command_exit_value;
 
 static int exit_or_logout ();
+static int sourced_logout = 0;
 
 int
 exit_builtin (list)
@@ -66,7 +67,7 @@ logout_builtin (list)
 {
   if (!login_shell && interactive)
     {
-      builtin_error ("Not login shell: use `exit' or `bye'");
+      builtin_error ("Not login shell: use `exit'");
       return (EXECUTION_FAILURE);
     }
   else
@@ -118,7 +119,7 @@ exit_or_logout (list)
     exit_value = last_command_exit_value;
 
   /* Run our `~/.bash_logout' file if it exists, and this is a login shell. */
-  if (login_shell)
+  if (login_shell && sourced_logout++ == 0)
     maybe_execute_file ("~/.bash_logout", 1);
 
   last_command_exit_value = exit_value;

@@ -307,6 +307,16 @@ stop_making_children ()
   already_making_children = 0;
 }
 
+void
+cleanup_the_pipeline ()
+{
+  if (the_pipeline)
+    {
+      discard_pipeline (the_pipeline);
+      the_pipeline = (PROCESS *)NULL;
+    }
+}
+
 /* Start building a pipeline.  */
 void
 start_pipeline ()
@@ -1189,7 +1199,7 @@ draino (fd, ospeed)
 #endif /* NEW_TTY_DRIVER && DRAIN_OUTPUT */
 
 /* Return the fd from which we are actually getting input. */
-#define input_tty() (shell_tty != -1) ? shell_tty : fileno (stdin)
+#define input_tty() (shell_tty != -1) ? shell_tty : fileno (stderr)
 
 /* Fill the contents of shell_tty_info with the current tty info. */
 get_tty_state ()
@@ -1474,15 +1484,9 @@ wait_for (pid)
     }
 
   /* XXX - the linux people say to check for JOBSTATE (job) == JSTOPPED */
-  if (child->running ||
-      ((job != NO_JOB) && (JOBSTATE (job) == JRUNNING)))
+  if (child->running || ((job != NO_JOB) && (JOBSTATE (job) == JRUNNING)))
     {
-#if !defined (BROKEN_SIGSUSPEND)
-      sigset_t suspend_set;
-
-      sigemptyset (&suspend_set);
-      sigsuspend (&suspend_set);
-#else /* BROKEN_SIGSUSPEND */
+#if defined (_POSIX_VERSION)
       struct sigaction act, oact;
 
       act.sa_handler = SIG_DFL;
@@ -1490,9 +1494,19 @@ wait_for (pid)
       act.sa_flags = 0;
 
       sigaction (SIGCHLD, &act, &oact);
+#else
+      SigHandler *ihandler;
+
+      ihandler = set_signal_handler (SIGCHLD, SIG_DFL);
+#endif /* !_POSIX_VERSION */
+
       flush_child (0);
+
+#if defined (_POSIX_VERSION)
       sigaction (SIGCHLD, &oact, (struct sigaction *)NULL);
-#endif /* BROKEN_SIGSUSPEND */
+#else
+      set_signal_handler (SIGCHLD, ihandler);
+#endif /* !_POSIX_VERSION */
 
       goto wait_loop;
     }
@@ -1528,6 +1542,19 @@ wait_for (pid)
 	    set_tty_state ();
 	  else
 	    get_tty_state ();
+
+	  /* If job control is enabled, the job was started with job
+	     control, the job was the foreground job, and it was killed
+	     by SIGINT, then print a newline to compensate for the kernel
+	     printing the ^C without a trailing newline. */
+	  if (job_control && (jobs[job]->flags & J_JOBCONTROL) &&
+		(jobs[job]->flags & J_FOREGROUND) && 
+		WIFSIGNALED (child->status) &&
+		WTERMSIG (child->status) == SIGINT)
+	    {
+	      putchar ('\n');
+	      fflush (stdout);
+	    }
 
 	  notify_and_cleanup ();
 	}
@@ -1951,8 +1978,7 @@ kill_pid (pid, sig, group)
 /* Flush_child () flushes at least one of the children that we are waiting for.
    It gets run when we have gotten a SIGCHLD signal, and stops when there
    aren't any children terminating any more.  If SIG is 0, this is to be a
-   blocking wait for a single child.  It is here to get around SCO Unix's
-   broken sigsuspend (). */
+   blocking wait for a single child. */
 static sighandler
 flush_child (sig)
      int sig;
@@ -1992,6 +2018,7 @@ flush_child (sig)
 		{
 		  int job_state = 0;
 		  int any_stopped = 0;
+		  int any_tstped = 0;
 
 		  child = jobs[job]->pipe;
 		  jobs[job]->flags &= ~J_NOTIFIED;
@@ -2002,7 +2029,12 @@ flush_child (sig)
 		   {
 		      job_state |= child->running;
 		      if (!child->running)
-			any_stopped |= WIFSTOPPED (child->status);
+		        {
+			  any_stopped |= WIFSTOPPED (child->status);
+			  any_tstped |= interactive && job_control &&
+					WIFSTOPPED (child->status) &&
+					WSTOPSIG (child->status) == SIGTSTP;
+		        }
 		      child = child->next;
 		    }
 		  while (child != jobs[job]->pipe);
@@ -2015,9 +2047,9 @@ flush_child (sig)
 			  jobs[job]->flags &= ~J_FOREGROUND;
 			  call_set_current++;
 			  last_stopped_job = job;
-			  /* Suspending a job in a loop breaks out of all
-			     active loops. */
-			  if (loop_level)
+			  /* Suspending a job in a loop from the keyboard
+			     breaks out of all active loops. */
+			  if (any_tstped && loop_level)
 			    breaking = loop_level;
 			}
 		      else
@@ -2082,11 +2114,7 @@ flush_child (sig)
 	  children_exited++;
 	}
     }
-#if defined (BROKEN_SIGSUSPEND)
-  while (sig && pid > (pid_t)0);   /* Hack for SCO, see earlier comment. */
-#else /* !BROKEN_SIGSUSPEND */
-  while (pid > (pid_t)0);
-#endif /* !BROKEN_SIGSUSPEND */
+  while (sig && pid > (pid_t)0);
 
   /* If a job was running and became stopped, then set the current
      job.  Otherwise, don't change a thing. */
@@ -2271,13 +2299,8 @@ initialize_jobs ()
 
       /* Get our controlling terminal.  If job_control is set, or
 	 interactive is set, then this is an interactive shell no
-	 matter what opening /dev/tty returns.  (It sometimes says
-	 the wrong thing.) */
-#if !defined (NO_DEV_TTY_JOB_CONTROL)
-      /* SCO Unix fails attempting job control on /dev/tty. */
-      if ((shell_tty = open ("/dev/tty", O_RDWR, 0666)) < 0)
-#endif /* !NO_DEV_TTY_JOB_CONTROL */
-	shell_tty = dup (fileno (stdin));
+	 matter what. */
+      shell_tty = dup (fileno (stderr));
 
       /* Find the highest unused file descriptor we can. */
       {
@@ -2296,7 +2319,7 @@ initialize_jobs ()
 
 	if (nds && shell_tty != nds && (dup2 (shell_tty, nds) != -1))
 	  {
-	    if (shell_tty != fileno (stdin))
+	    if (shell_tty != fileno (stderr))
 	      close (shell_tty);
 	    shell_tty = nds;
 	  }
@@ -2350,7 +2373,7 @@ initialize_jobs ()
         internal_error ("no job control in this shell");	/* XXX */
     }
 
-  if (shell_tty != fileno (stdin))
+  if (shell_tty != fileno (stderr))
     SET_CLOSE_ON_EXEC (shell_tty);
 
   set_signal_handler (SIGCHLD, flush_child);

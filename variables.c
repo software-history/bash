@@ -105,7 +105,7 @@ static int qsort_var_comp ();
 
 /* Make VAR be auto-exported.  VAR is a pointer to a SHELL_VAR. */
 #define set_auto_export(var) \
-{ var->attributes |= att_exported; array_needs_making = 1; }
+  do { var->attributes |= att_exported; array_needs_making = 1; } while (0)
 
 #if defined (HISTORY)
 #  include "bashhist.h"
@@ -274,7 +274,7 @@ initialize_shell_variables (env)
   /* Get the full pathname to THIS shell, and set the BASH variable
      to it. */
   {
-    char *tname = find_user_command (shell_name);
+    char *tname;
 
     if ((login_shell == 1) && (*shell_name != '/'))
       {
@@ -284,10 +284,32 @@ initialize_shell_variables (env)
 
 	name = savestring (current_user.shell);
       }
+    else if (*shell_name == '/')
+      name = savestring (shell_name);
     else
       {
-	if (!tname)
-	  name = make_absolute (shell_name, get_string_value ("PWD"));
+	int s;
+
+      	tname = find_user_command (shell_name);
+	if (tname == 0)
+	  {
+	    /* Try the current directory.  If there is not an executable
+	       there, just punt and use the login shell. */
+	    s = file_status (shell_name);
+	    if (s & FS_EXECABLE)
+	      {
+		tname = make_absolute (shell_name, get_string_value ("PWD"));
+		if (*shell_name == '.')
+		  {
+		    name = canonicalize_pathname (tname);
+		    free (tname);
+		  }
+		else
+		  name = tname;
+	      }
+	    else
+	      name = savestring (current_user.shell);
+	  }
 	else
 	  {
 	    name = full_pathname (tname);

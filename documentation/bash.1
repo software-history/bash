@@ -4731,13 +4731,24 @@ unless an illegal option is encountered.
 The positional parameters from \fIn\fP+1 ... are renamed to
 .B $1
 .B ....
+Parameters represented by the numbers \fB$#\fP
+down to \fB$#\fP\-\fIn\fP+1 are unset.
+If
+.I n
+is 0, no parameters are changed.
 If
 .I n 
-is not given, it is assumed to be 1.  The exit status is 1 if
+is not given, it is assumed to be 1.
+.I n
+must be a non-negative number less than or equal to \fB$#\fP.
+If
+.I n
+is greater than \fB$#\fP, the positional parameters are not changed.
+The return status is greater than 0 if
 .I n
 is greater than
-.BR $# ;
-otherwise 0.
+.B $#
+or less than 0; otherwise 0.
 .TP
 \fBsuspend\fP [\fB\-f\fP]
 Suspend the execution of this shell until it receives a

@@ -941,7 +941,6 @@ word_list_remove_quoted_nulls (list)
    STRING. */
 
 #define issep(c)	(member ((c), separators))
-#define spctabnl(c)	((c) == ' '|| (c) == '\t' || (c) == '\n')
 
 WORD_LIST *
 list_string (string, separators, quoted)
@@ -1938,6 +1937,7 @@ process_substitute (string, open_for_read_in_child)
 #if defined (JOB_CONTROL)
   old_pipeline_pgrp = pipeline_pgrp;
   pipeline_pgrp = shell_pgrp;
+  cleanup_the_pipeline ();
   pid = make_child ((char *)NULL, 1);
   if (pid == 0)
     {
@@ -1959,8 +1959,6 @@ process_substitute (string, open_for_read_in_child)
       subshell_environment++;
     }
 #endif /* !JOB_CONTROL */
-
-  set_sigint_handler ();
 
   if (pid < 0)
     {
@@ -1988,6 +1986,8 @@ process_substitute (string, open_for_read_in_child)
 
       return (pathname);
     }
+
+  set_sigint_handler ();
 
 #if defined (JOB_CONTROL)
   set_job_control (0);
@@ -2076,6 +2076,7 @@ command_substitute (string, quoted)
     pid_t old_pipeline_pgrp = pipeline_pgrp;
 
     pipeline_pgrp = shell_pgrp;
+    cleanup_the_pipeline ();
     pid = make_child ((char *)NULL, 0);
     if (pid == 0)
       /* Reset the signal handlers in the child, but don't free the
@@ -2094,8 +2095,6 @@ command_substitute (string, quoted)
     reset_signal_handlers ();
 #endif /* !JOB_CONTROL */
 
-  set_sigint_handler ();	/* XXX - move after error check? */
-
   if (pid < 0)
     {
       internal_error ("Can't make a child for command substitution: %s",
@@ -2110,6 +2109,7 @@ command_substitute (string, quoted)
 
   if (pid == 0)
     {
+      set_sigint_handler ();	/* XXX */
 #if defined (JOB_CONTROL)
       set_job_control (0);
 #endif
@@ -2139,6 +2139,9 @@ command_substitute (string, quoted)
 
       /* The currently executing shell is not interactive. */
       interactive = 0;
+
+      /* Command substitution does not inherit the -e flag. */
+      exit_immediately_on_error = 0;
 
       remove_quoted_escapes (string);
 
@@ -2389,11 +2392,16 @@ parameter_brace_expand_rhs (name, value, c, quoted)
   else
     temp = savestring (value);
 
-  l = expand_string_leave_quoted (temp, quoted);
+  l = *temp ? expand_string_internal (temp, 0) : (WORD_LIST *)NULL;
   free (temp);
 
-  temp = string_list (l);
-  dispose_words (l);
+  if (l)
+    {
+      temp = string_list (l);
+      dispose_words (l);
+    }
+  else
+    temp = (char *)NULL;
 
   if (c == '-' || c == '+')
     return (temp);
@@ -3010,7 +3018,7 @@ expand_word_internal (word, quoted, contains_dollar_at, expanded_something)
 			  }
 			else if (c != '+')
 			  temp = parameter_brace_expand_rhs
-			    (name, value, c, 0); /* XXX was quoted, not 0 */
+			    (name, value, c, quoted);
 			free (value);
 		      }
 		    break;
@@ -3462,10 +3470,11 @@ final_exit:
 	    temp_list = list_string (istring, " ", 1);
 	  else
 	    {
-	      temp_list = make_word_list
-		(make_word (istring), (WORD_LIST *)NULL);
-	      temp_list->word->quoted =
-		(quoted || (quoted_state == WHOLLY_QUOTED));
+	      WORD_DESC *tword;
+	      tword = make_word (istring);
+	      temp_list = make_word_list (tword, (WORD_LIST *)NULL);
+	      tword->quoted = quoted || (quoted_state == WHOLLY_QUOTED);
+	      tword->assignment = word->assignment;
 	    }
 	}
 
@@ -3525,15 +3534,11 @@ string_quote_removal (string, quoted)
 	    temp = string_extract_double_quoted (string, &tindex);
 	    sindex = tindex;
 
-	    temp1 = string_quote_removal (temp, 1);  /* XXX is this needed? */
-
-	    FREE (temp);
-
-	    if (temp1)
+	    if (temp)
 	      {
-		strcpy (r, temp1);
+		strcpy (r, temp);
 		r += strlen (r);
-		free (temp1);
+		free (temp);
 	      }
 	    break;
 
@@ -3895,7 +3900,10 @@ static int allow_null_glob_expansion = 0;
 
    This does all of the substitutions: brace expansion, tilde expansion,
    parameter expansion, command substitution, arithmetic expansion,
-   process substitution, word splitting, and pathname expansion. */
+   process substitution, word splitting, and pathname expansion.
+   Words with the `quoted' or `assignment' bits set, or for which no
+   expansion is done, do not undergo word splitting.  Words with the
+   `assignment' but set do not undergo pathname expansion. */
 static WORD_LIST *
 expand_words_internal (list, do_vars)
      WORD_LIST *list;
@@ -4031,7 +4039,9 @@ expand_words_internal (list, do_vars)
 	    longjmp (top_level, FORCE_EOF);
 	}
 
-      if (expanded_something)
+      /* Don't split assignment words, even when they do not precede a
+	 command name. */
+      if (expanded_something && tlist->word->assignment == 0)
 	{
 	  t = word_list_split (expanded);
 	  dispose_words (expanded);
@@ -4097,7 +4107,7 @@ expand_words_internal (list, do_vars)
 
 	      /* If the word isn't quoted and there is an unquoted pattern
 		 matching character in the word, then glob it. */
-	      if (!tlist->word->quoted &&
+	      if (!tlist->word->quoted && !tlist->word->assignment &&
 		  unquoted_glob_pattern_p (tlist->word->word))
 		{
 		  temp_list = shell_glob_filename (tlist->word->word);

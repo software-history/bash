@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include "bashansi.h"
+#include <readline/rlconf.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "shell.h"
@@ -101,6 +102,7 @@ int bash_readline_initialized = 0;
 
 #if defined (VI_MODE)
 static void vi_edit_and_execute_command ();
+extern char *rl_vi_comment_begin;
 #endif
 
 static Function *old_rl_startup_hook = (Function *) NULL;
@@ -165,7 +167,10 @@ initialize_readline ()
      off this occasionally confusing behaviour. */
   rl_unbind_key_in_map (CTRL('J'), emacs_meta_keymap);
   rl_unbind_key_in_map (CTRL('M'), emacs_meta_keymap);
-
+#if defined (VI_MODE)
+  rl_unbind_key_in_map (CTRL('E'), vi_movement_keymap);
+#endif
+  
 #if defined (BRACE_COMPLETION)
   rl_add_defun ("complete-into-braces", bash_brace_completion, -1);
   rl_bind_key_in_map ('{', bash_brace_completion, emacs_meta_keymap);
@@ -249,6 +254,7 @@ bashline_reinitialize ()
 {
   tilde_initialize ();
   rl_attempted_completion_function = attempt_shell_completion;
+  rl_completion_entry_function = (Function *)NULL;
   rl_directory_completion_hook = bash_directory_completion_hook;
   rl_ignore_some_completions_function = (Function *)filename_completion_ignore;
 }
@@ -329,13 +335,17 @@ static int hostname_list_needs_sorting = 0;
 static void
 initialize_hostname_list ()
 {
-  char *temp = get_string_value ("hostname_completion_file");
+  char *temp;
 
+  temp = get_string_value ("HOSTFILE");
+  if (!temp)
+    temp = get_string_value ("hostname_completion_file");
   if (!temp)
     temp = ETCHOSTS;
 
   snarf_hosts_from_file (temp);
   sort_hostname_list ();
+
   if (hostname_list)
     hostname_list_initialized++;
 }
@@ -930,7 +940,7 @@ command_subst_completion_function (text, state)
      int state;
      char *text;
 {
-  char **matches = (char **)NULL;
+  static char **matches = (char **)NULL;
   static char *orig_start, *filename_text = (char *)NULL;
   static int cmd_index, start_len;
 

@@ -21,6 +21,10 @@
    675 Mass Ave, Cambridge, MA 02139, USA. */
 #define READLINE_LIBRARY
 
+#if defined (HAVE_CONFIG_H)
+#  include "config.h"
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -462,7 +466,8 @@ rl_redisplay ()
 		  (_rl_last_c_pos < visible_first_line_len))
 		{
 		  nleft = screenwidth + wrap_offset - _rl_last_c_pos;
-		  clear_to_eol (nleft);
+		  if (nleft)
+		    clear_to_eol (nleft);
 		}
 
 	      /* Since the new first line is now visible, save its length. */
@@ -488,7 +493,7 @@ rl_redisplay ()
 
 	  /* Move the cursor where it should be. */
 	  /* Which line? */
-	  nleft = c_pos - wrap_offset - term_xn + 1;
+	  nleft = c_pos - wrap_offset + term_xn - 1;
 	  cursor_linenum = (nleft > 0) ? nleft / screenwidth : 0;
 
 	  /* CHANGED_SCREEN_LINE is set to 1 if we have moved to a

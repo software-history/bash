@@ -31,11 +31,11 @@
    various machine specific entries. */
 
 /* If this file is being processed with Gcc, then the user has Gcc. */
-#if defined (__GNUC__) && !defined (NeXT)
+#if defined (__GNUC__) && !defined (NeXT) && !defined (__FreeBSD__)
 #  if !defined (HAVE_GCC)
 #    define HAVE_GCC
 #  endif /* HAVE_GCC */
-#endif /* __GNUC__ && !NeXT */
+#endif /* __GNUC__ && !NeXT && !__FreeBSD__ */
 
 /* Assume that all machines have the getwd () system call.  We unset it
    for USG systems. */
@@ -85,7 +85,8 @@
 #if defined (sparc) && defined (__NetBSD__)
 #  define M_MACHINE "sun4"
 #  define M_OS "NetBSD"
-#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY \
+			-DRLIMTYPE=quad_t
 #  define SYSDEP_LDFLAGS -static
 #  define HAVE_SYS_SIGLIST
 #  define HAVE_SETLINEBUF
@@ -205,7 +206,8 @@
 #  else /* !MIPSEL */
 #    define M_MACHINE "vax"
 #  endif /* !MIPSEL */
-#  define SYSDEP_CFLAGS -DBSD_GETPGRP -DTERMIOS_MISSING -DTERMIOS_LDISC
+#  define SYSDEP_CFLAGS -DBSD_GETPGRP -DTERMIOS_MISSING -DTERMIOS_LDISC \
+			-DINT_GROUPS_ARRAY
 #  define M_OS "Ultrix"
 #  define HAVE_DIRENT
 #  define VOID_SIGHANDLER
@@ -584,6 +586,7 @@
 #      define HAVE_RESOURCE
 #    endif
 #    define HAVE_STRCASECMP
+#    define GCC_STANDARD
 #    undef HAVE_GETWD
 #    undef HAVE_GETCWD
 #    undef USE_GNU_MALLOC
@@ -676,7 +679,11 @@
 #    endif /* __STDC__ */
 #    define SYSDEP_CFLAGS ISC_SYSDEPS ISC_POSIX ISC_EXTRA
 #    undef HAVE_GETWD
-#    undef HAVE_GETCWD
+#    if !defined (ISC_4)
+#      undef HAVE_GETCWD
+#    else
+#      undef HAVE_RESOURCE
+#    endif /* ISC_4 */
 #  endif /* isc386 */
 
 /* Xenix386 machine (with help from Ronald Khoo <ronald@robobar.co.uk>). */
@@ -716,11 +723,11 @@
 #    define done386
 #    define M_MACHINE "i386"
 #    define M_OS "SCO"
-#    define SCO_CFLAGS -DUSG -DUSGr3 -DNO_DEV_TTY_JOB_CONTROL -DPGRP_PIPE
+#    define SCO_CFLAGS -DUSG -DUSGr3 -DPGRP_PIPE
 #    if defined (SCOv4)
 #      define SYSDEP_CFLAGS SCO_CFLAGS
 #    else /* !SCOv4 */
-#      define SYSDEP_CFLAGS SCO_CFLAGS -DBROKEN_SIGSUSPEND -DOPENDIR_NOT_ROBUST
+#      define SYSDEP_CFLAGS SCO_CFLAGS -DOPENDIR_NOT_ROBUST
 #    endif /* !SCOv4 */
 #    define HAVE_VFPRINTF
 #    define VOID_SIGHANDLER
@@ -772,7 +779,8 @@
 #    define done386
 #    define M_MACHINE "i386"
 #    define M_OS "NetBSD"
-#    define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#    define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY \
+			  -DRLIMTYPE=quad_t
 #    define HAVE_SYS_SIGLIST
 #    define HAVE_SETLINEBUF
 #    define HAVE_GETGROUPS
@@ -788,7 +796,11 @@
 #    define done386
 #    define M_MACHINE "i386"
 #    define M_OS "FreeBSD"
-#    define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#    if __FreeBSD__ > 1
+#      define SYSDEP_CFLAGS -D__BSD_4_4__ -DRLIMTYPE=quad_t
+#    else
+#      define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#    endif
 #    define HAVE_SYS_SIGLIST
 #    define HAVE_SETLINEBUF
 #    define HAVE_GETGROUPS
@@ -797,6 +809,7 @@
 #    define VOID_SIGHANDLER
 #    define HAVE_DIRENT
 #    define HAVE_STRCASECMP
+#    define GCC_STANDARD
 #  endif /* !done386 && __FreeBSD__ */
 
 /* Jolitz 386BSD running on a 386 or 486. */
@@ -971,6 +984,7 @@
 #    define HAVE_RESOURCE
 #  endif
 #  define HAVE_STRCASECMP
+#  define GCC_STANDARD
 #  undef HAVE_GETWD
 #  undef HAVE_GETCWD
 #  undef HAVE_DIRENT_H
@@ -988,7 +1002,8 @@
 #  define M_MACHINE MACHINE
 #  define M_OS "NetBSD"
 /* os/netbsd.h */
-#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY
+#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY \
+			-DRLIMTYPE=quad_t
 #  define HAVE_SYS_SIGLIST
 #  define HAVE_SETLINEBUF
 #  define HAVE_GETGROUPS
@@ -996,6 +1011,7 @@
 #  define HAVE_STRERROR
 #  define VOID_SIGHANDLER
 #  define HAVE_DIRENT
+#  define HAVE_STRCASECMP
 #endif /* m68k && __NetBSD__ */
 
 /* ************************ */
@@ -1074,7 +1090,7 @@
 #  else /* !HPUX_USG */
 
 /* All of the other operating systems need HPUX to be defined. */
-#    define HPUX_EXTRA -DHPUX -DHAVE_GETHOSTNAME -DUSG
+#    define HPUX_EXTRA -DHPUX -Dhpux -DHAVE_GETHOSTNAME -DUSG
 
      /* HPUX 6.2 .. 6.5 require -lBSD for getwd (), and -lPW for alloca (). */
 #    if defined (HPUX_6)
@@ -1100,10 +1116,13 @@
 #      define M_OS "hpux_8"
 #      if !defined (__GNUC__)
 #        undef HAVE_ALLOCA
+#	 define HPUX_ANSI +O3 -Aa -D_HPUX_SOURCE
+#      else
+#	 define HPUX_ANSI
 #      endif
 #      undef HAVE_GETWD
 #      undef USE_GNU_MALLOC
-#      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS
+#      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS HPUX_ANSI
 #    endif /* HPUX_8 */
 
      /* HP-UX 9.0 reportedly fixes the alloca problems present in the 8.0
@@ -1112,11 +1131,14 @@
 #      define M_OS "hpux_9"
 #      if !defined (__GNUC__)
 #        undef HAVE_ALLOCA
+#	 define HPUX_ANSI +O3 -Ae
+#      else
+#	 define HPUX_ANSI
 #      endif
 #      undef HAVE_GETWD
 #      undef USE_GNU_MALLOC
 #      undef HAVE_RESOURCE
-#      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS -DHAVE_GETHOSTNAME
+#      define HPUX_CFLAGS -DNO_SBRK_DECL -DHAVE_SOCKETS -DHAVE_GETHOSTNAME HPUX_ANSI
 #    endif /* HPUX_9 */
 
 #  endif /* !HPUX_USG */
@@ -1546,10 +1568,25 @@
 
 /* ******************************************** */
 /*						*/
-/*  System V Release 4 on the Commodore Amiga   */
+/*  		Commodore Amiga			*/
 /*						*/
 /* ******************************************** */
-#if defined (amiga)
+#if defined (amiga) && defined (__NetBSD__)
+#  define M_MACHINE "amiga"
+#  define M_OS "NetBSD"
+#  define SYSDEP_CFLAGS -DOPENDIR_NOT_ROBUST -DINT_GROUPS_ARRAY \
+			-DRLIMTYPE=quad_t
+#  define HAVE_SYS_SIGLIST
+#  define HAVE_SETLINEBUF
+#  define HAVE_GETGROUPS
+#  define HAVE_VFPRINTF
+#  define HAVE_STRERROR
+#  define VOID_SIGHANDLER
+#  define HAVE_DIRENT
+#  define HAVE_STRCASECMP
+#endif /* amiga && __NetBSD__ */
+
+#if defined (amiga) && !defined (M_MACHINE)
 #  define M_MACHINE "amiga"
 #  define M_OS "USG"
 #  define SYSDEP_CFLAGS -DUSGr4
@@ -1861,6 +1898,7 @@ MAKE = make
 /*			    */
 /* ************************ */
 #if defined (cray)
+#  include <sys/param.h>
 #  if defined (Cray1) || defined (Cray2)
 #    define M_MACHINE "Cray"
 #    define CRAY_STACK
@@ -1872,7 +1910,7 @@ MAKE = make
 #  if defined (CrayYMP) && !defined (M_MACHINE)
 #    define M_MACHINE "CrayYMP"
 #    if RELEASE_LEVEL >= 7000
-#      define CRAY_STACK -DCRAY_STACKSEG_END=GETB67
+#      define CRAY_STACK -DCRAY_STACKSEG_END=_getb67
 #    else
 #      define CRAY_STACK -DCRAY_STACKSEG_END=getb67
 #    endif /* RELEASE_LEVEL < 7000 */
@@ -1882,7 +1920,8 @@ MAKE = make
 #    define CRAY_STACK
 #  endif
 #  define M_OS "Unicos"
-#  define SYSDEP_CFLAGS -DUSG -DPGRP_PIPE -DOPENDIR_NOT_ROBUST CRAY_STACK
+#  define SYSDEP_CFLAGS -DUSG -DPGRP_PIPE -DOPENDIR_NOT_ROBUST \
+			-DHAVE_BCOPY CRAY_STACK
 #  define HAVE_VFPRINTF
 #  define HAVE_MULTIPLE_GROUPS
 #  define VOID_SIGHANDLER
@@ -2071,8 +2110,6 @@ MAKE = make
 	AFS	-	The Andrew File System is being used
 	AFS_CREATE_BUG - AFS has a bug with file creation if O_CREAT is
 			 specified
-	BROKEN_SIGSUSPEND - sigsuspend(2) does not work to wake up processes
-			    on SIGCHLD
 	BSD_GETPGRP -	getpgrp(2) takes a pid argument, a la 4.3 BSD
 	HAVE_BCOPY -	bcopy(3) exists and works as in BSD
 	HAVE_GETDTABLESIZE - getdtablesize(2) exists and works correctly
@@ -2089,7 +2126,6 @@ MAKE = make
 			   of integers
 	MEMMOVE_MISSING - the system does not have memmove(3)
 	MKFIFO_MISSING - named pipes do not work or mkfifo(3) is missing
-	NO_DEV_TTY_JOB_CONTROL - system can't do job control on /dev/tty
 	NO_SBRK_DECL - don't declare sbrk as extern char *sbrk() in
 		       lib/malloc/malloc.c
 	OPENDIR_NOT_ROBUST - opendir(3) allows you to open non-directory files
@@ -2154,6 +2190,10 @@ MAKE = make
    if it cannot grok the -l<lib> flag, or both. */
 /* #  define LD_HAS_NO_DASH_L */
 
+/* Define GCC_STANDARD if the standard `cc' is gcc and you don't want
+   to use the compiler named `gcc' for some reason. */
+/* #  define GCC_STANDARD */
+          
 #  if defined (LD_HAS_NO_DASH_L)
 #   undef SEARCH_LIB_NEEDS_SPACE
 #  endif /* LD_HAS_NO_DASH_L */

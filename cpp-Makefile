@@ -44,7 +44,7 @@ all: .made
 /* Define HAVE_GCC if you have the GNU C compiler. */
 /* #define HAVE_GCC */
 
-#if defined (__GNUC__) && !defined (HAVE_GCC) && !defined (NeXT)
+#if defined (__GNUC__) && !defined (HAVE_GCC) && !defined (GCC_STANDARD)
 #  define HAVE_GCC
 #endif
 
@@ -1024,7 +1024,7 @@ THINGS_TO_TAR = $(SOURCES) $(LIBRARY_TAR) $(BASHDOCS) $(SUPPORT) $(BAGGAGE)
 .made: $(Program) bashbug
 	cp .machine .made
 
-$(Program):  .build $(OBJECTS) $(LIBDEP) .distribution
+$(Program):  .build $(OBJECTS) $(LIBDEP) $(srcdir)/.distribution
 	$(RM) $@
 	$(PURIFY) $(CC) $(LDFLAGS) $(LIBRARY_LDFLAGS) -o $(Program) $(OBJECTS) $(LIBRARIES)
 	ls -l $(Program)
@@ -1094,10 +1094,9 @@ $(MALLOC_LIBRARY): $(MALLOC_SOURCE)
 
 version.o: version.c version.h
 
-shell.o: shell.c shell.h flags.h shell.c posixstat.h filecntl.h stdc.h \
-          $(ENDIAN_HEADER) parser.h
+shell.o: shell.c shell.h flags.h shell.c posixstat.h filecntl.h stdc.h $(ENDIAN_HEADER) parser.h
 	$(RM) $@
-	$(CC) $(CFG_FLAGS) $(CCFLAGS) $(CPPFLAGS) -c $<
+	$(CC) $(CFG_FLAGS) $(CCFLAGS) $(CPPFLAGS) -c $(srcdir)/shell.c
 
 #if !defined (HAVE_WAIT_H)
 $(ENDIAN_HEADER):     endian.aux
@@ -1111,7 +1110,7 @@ signames.h:   signames.aux
 
 variables.o:  variables.c shell.h hash.h flags.h variables.h
 		$(RM) $@
-		$(CC) -c $(CCFLAGS) $(HOSTTYPE_DECL) $(CPPFLAGS) $<
+		$(CC) -c $(CCFLAGS) $(HOSTTYPE_DECL) $(CPPFLAGS) $(srcdir)/variables.c
 
 builtins/libbuiltins.a: $(BUILTIN_OBJS) config.h memalloc.h
 	build_builtins (libbuiltins.a)
@@ -1476,7 +1475,7 @@ mailable:	distribution
 		$(SHELL) -c 'f=$(Program)-`cat .distribution`.tar.Z;uuencode $$f $$f | split -800 - uuencoded/$$f.uu.'
 
 newversion.aux:	newversion.c
-		$(CC) $(CCFLAGS) -o $@ $<
+		$(CC) $(CCFLAGS) -o $@ $(srcdir)/newversion.c
 
 newversion:	newversion.aux
 		$(RM) .build
@@ -1522,7 +1521,7 @@ recho:		$(SUPPORT_SRC)recho.c
 	@$(CC) -o $@ $(SUPPORT_SRC)recho.c
 
 tests:		force $(Program) recho
-	@cp recho tests
+	@cp recho $(SUPPORT_SRC)printenv tests
 	( cd tests ; sh run-all )
 
 /**/# Here is a convenient rule when you arrive at a new site and wish to

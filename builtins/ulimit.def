@@ -24,7 +24,7 @@ $PRODUCES ulimit.c
 $BUILTIN ulimit
 $FUNCTION ulimit_builtin
 $DEPENDS_ON !MINIX
-$SHORT_DOC ulimit [-SHacdmstfpnuv [limit]]
+$SHORT_DOC ulimit [-SHacdfmstpnuv [limit]]
 Ulimit provides control over the resources available to processes
 started by the shell, on systems that allow such control.  If an
 option is given, it is interpreted as follows:
@@ -91,6 +91,14 @@ extern int errno;
 
 static void print_long ();
 
+#if !defined (RLIMTYPE)
+#  define RLIMTYPE long
+#  define string_to_rlimtype string_to_long
+#  define print_rlimtype(n, nl) printf ("%ld%s", n, nl ? "\n" : "")
+#endif
+
+static void print_long ();
+
 /* **************************************************************** */
 /*								    */
 /*			Ulimit builtin and Hacks.       	    */
@@ -126,12 +134,12 @@ static void print_long ();
 #define LIMIT_HARD 0x01
 #define LIMIT_SOFT 0x02
 
-static long shell_ulimit ();
-static long pipesize ();
-static long open_files ();
+static RLIMTYPE shell_ulimit ();
+static RLIMTYPE pipesize ();
+static RLIMTYPE open_files ();
 
 #if defined (HAVE_RESOURCE)
-static long getmaxvm ();
+static RLIMTYPE getmaxvm ();
 #endif /* HAVE_RESOURCE */
 
 static void print_specific_limits ();
@@ -147,7 +155,7 @@ static char t[2];
 static int
 canraise (cmd, current, new)
      int cmd;
-     long current, new;
+     RLIMTYPE current, new;
 {
 #  if defined (HAVE_SETDTABLESIZE)
   if (cmd == u_NUM_OPEN_FILES)
@@ -169,10 +177,11 @@ ulimit_builtin (list)
   register char *s;
   int c, setting, cmd, mode, verbose_print, opt_eof;
   int all_limits, specific_limits;
-  long current_limit, real_limit, limit = -1L;
   long block_factor;
+  RLIMTYPE current_limit, real_limit, limit;
 
   c = mode = verbose_print = opt_eof = 0;
+  limit = (RLIMTYPE)-1;
 
   do
     {
@@ -302,7 +311,7 @@ ulimit_builtin (list)
 		if (STREQ (s, "unlimited"))
 		  limit = RLIM_INFINITY;
 		else if (all_digits (s))
-		  limit = string_to_long (s);
+		  limit = string_to_rlimtype (s);
 		else
 		  {
 		    builtin_error ("bad non-numeric arg `%s'", s);
@@ -341,7 +350,7 @@ ulimit_builtin (list)
 	    }
 #endif /* !HAVE_RESOURCE */
 
-	  if (shell_ulimit (cmd, real_limit, 1, mode) == -1L)
+	  if (shell_ulimit (cmd, real_limit, 1, mode) == (RLIMTYPE)-1)
 	    {
 	      builtin_error ("cannot raise limit: %s", strerror (errno));
 	      return (EXECUTION_FAILURE);
@@ -354,7 +363,7 @@ ulimit_builtin (list)
 	  if (current_limit < 0)
 	    builtin_error ("cannot get limit: %s", strerror (errno));
 	  else if (current_limit != RLIM_INFINITY)
-	    printf ("%ld\n", (current_limit / block_factor));
+	    print_rlimtype ((current_limit / block_factor), 1);
 	  else
 	    printf ("unlimited\n");
 	}
@@ -377,10 +386,10 @@ ulimit_builtin (list)
    This includes most USG systems.
 
    Chet Ramey supplied the BSD resource limit code. */
-static long
+static RLIMTYPE
 shell_ulimit (which, newlim, setting, mode)
      int which, setting, mode;
-     long newlim;
+     RLIMTYPE newlim;
 {
 #if defined (HAVE_RESOURCE)
   struct rlimit limit;
@@ -400,7 +409,7 @@ shell_ulimit (which, newlim, setting, mode)
 	  /* ulimit () returns a number that is in 512 byte blocks, thus we
 	     must multiply it by 512 to get back to bytes.  This is false
 	     only under HP/UX 6.x. */
-	  long result;
+	  RLIMTYPE result;
 
 	  result = ulimit (1, 0L);
 
@@ -435,7 +444,7 @@ shell_ulimit (which, newlim, setting, mode)
       cmd = RLIMIT_RSS;
 #  else /* !RLIMIT_RSS */
       errno = EINVAL;
-      return (-1L);
+      return ((RLIMTYPE)-1);
 #  endif /* !RLIMIT_RSS */
 
       goto do_ulimit;
@@ -457,7 +466,7 @@ shell_ulimit (which, newlim, setting, mode)
     do_ulimit:
 
       if (getrlimit (cmd, &limit) != 0)
-	return (-1L);
+	return ((RLIMTYPE)-1);
 
       if (!setting)
 	{
@@ -493,7 +502,7 @@ shell_ulimit (which, newlim, setting, mode)
       if (setting)
 	{
 	  errno = EINVAL;
-	  return (-1L);
+	  return ((RLIMTYPE)-1);
 	}
       return (pipesize ());
 
@@ -508,7 +517,7 @@ shell_ulimit (which, newlim, setting, mode)
 	  return (setdtablesize (newlim));
 #  else
 	  errno = EINVAL;
-	  return (-1L);
+	  return ((RLIMTYPE)-1);
 #  endif /* HAVE_SETDTABLESIZE */
 #endif /* !HAVE_RESOURCE || !RLIMIT_NOFILE */
 	}
@@ -519,7 +528,7 @@ shell_ulimit (which, newlim, setting, mode)
       if (setting)
 	{
 	  errno = EINVAL;
-	  return (-1L);
+	  return ((RLIMTYPE)-1);
 	}
       else
 	{
@@ -527,7 +536,7 @@ shell_ulimit (which, newlim, setting, mode)
 	  return (getmaxvm (mode));
 #else /* !HAVE_RESOURCE */
 	  errno = EINVAL;
-	  return (-1L);
+	  return ((RLIMTYPE)-1);
 #endif /* !HAVE_RESOURCE */
 	}
 
@@ -537,17 +546,17 @@ shell_ulimit (which, newlim, setting, mode)
       goto do_ulimit;
 #else /* !HAVE_RESOURCE || !RLIMIT_NPROC */
       errno = EINVAL;
-      return (-1L);
+      return ((RLIMTYPE)-1);
 #endif /* !HAVE_RESOURCE || !RLIMIT_NPROC */
       
     default:
       errno = EINVAL;
-      return (-1L);
+      return ((RLIMTYPE)-1);
     }
 }
 
 #if defined (HAVE_RESOURCE)
-static long
+static RLIMTYPE
 getmaxvm (mode)
      int mode;
 {
@@ -555,19 +564,19 @@ getmaxvm (mode)
 
 #if defined (RLIMIT_VMEM)
   if (getrlimit (RLIMIT_VMEM, &rl) < 0)
-    return (-1L);
+    return ((RLIMTYPE)-1);
   else
     return (((mode & LIMIT_SOFT) ? rl.rlim_cur : rl.rlim_max) / 1024L);
 #else /* !RLIMIT_VMEM */
-  unsigned long maxdata, maxstack;
+  RLIMTYPE maxdata, maxstack;
 
   if (getrlimit (RLIMIT_DATA, &rl) < 0)
-    return (-1L);
+    return ((RLIMTYPE)-1);
   else
     maxdata = (mode & LIMIT_SOFT) ? rl.rlim_cur : rl.rlim_max;
 
   if (getrlimit (RLIMIT_STACK, &rl) < 0)
-    return (-1L);
+    return ((RLIMTYPE)-1);
   else
     maxstack = (mode & LIMIT_SOFT) ? rl.rlim_cur : rl.rlim_max;
 
@@ -577,12 +586,12 @@ getmaxvm (mode)
 }
 #endif /* HAVE_RESOURCE */
 
-static long
+static RLIMTYPE
 open_files (mode)
      int mode;
 {
 #if !defined (RLIMIT_NOFILE)
-  return ((long)getdtablesize ());
+  return ((RLIMTYPE)getdtablesize ());
 #else
   struct rlimit rl;
 
@@ -594,19 +603,19 @@ open_files (mode)
 #endif
 }
 
-static long
+static RLIMTYPE
 pipesize ()
 {
 #if defined (PIPE_BUF)
   /* This is defined on Posix systems. */
-  return ((long) PIPE_BUF);
+  return ((RLIMTYPE) PIPE_BUF);
 #else
 #  if defined (PIPESIZE)
   /* This is defined by running a program from the Makefile. */
-  return ((long) PIPESIZE);
+  return ((RLIMTYPE) PIPESIZE);
 #  else
   errno = EINVAL;
-  return (-1L);
+  return ((RLIMTYPE)-1);
 #  endif /* PIPESIZE */
 #endif /* PIPE_BUF */
 }
@@ -652,7 +661,7 @@ print_bsd_limit (i, mode)
      int i, mode;
 {
   struct rlimit rl;
-  long limit;
+  RLIMTYPE limit;
 
   getrlimit (limits[i].parameter, &rl);
   if (mode & LIMIT_HARD)
@@ -663,7 +672,7 @@ print_bsd_limit (i, mode)
   if (limit == RLIM_INFINITY)
     printf ("unlimited\n");
   else
-    printf ("%ld\n", limit / limits[i].block_factor);
+    print_rlimtype ((limit / limits[i].block_factor), 1);
 }
 
 static void
@@ -686,25 +695,36 @@ print_specific_limits (cmd, mode)
      int cmd, mode;
 {
   if (mode == 0)
-    mode |= LIMIT_SOFT;
+    mode = LIMIT_SOFT;
 
 #if defined (HAVE_RESOURCE)
   print_specific_bsd_limits (cmd, mode);
 #else /* !HAVE_RESOURCE */
   if (cmd & u_FILE_SIZE)
-    printf ("%-25s%ld\n",
-	    "file size (blocks)", ulimit (1, 0L) / ULIMIT_DIVISOR);
+    {
+      printf ("%-25s", "file size (blocks)");
+      print_rlimtype ((ulimit (1, 0L) / ULIMIT_DIVISOR), 1);
+    }
 #endif /* !HAVE_RESOURCE */
 
   if (cmd & u_PIPE_SIZE)
-    printf ("%-25s%ld\n", "pipe size (512 bytes)", (pipesize () / 512));
+    {
+      printf ("%-25s", "pipe size (512 bytes)");
+      print_rlimtype ((pipesize () / 512), 1);
+    }
 
   if (cmd & u_NUM_OPEN_FILES)
-    printf ("%-25s%ld\n", "open files", open_files (mode));
+    {
+      printf ("%-25s", "open files");
+      print_rlimtype (open_files (mode), 1);
+    }
 
 #if defined (HAVE_RESOURCE)
   if (cmd & u_MAX_VIRTUAL_MEM)
-    printf ("%-25s%ld\n", "virtual memory (kbytes)", getmaxvm (mode));
+    {
+      printf ("%-25s", "virtual memory (kbytes)");
+      print_rlimtype (getmaxvm (mode), 1);
+    }
 #endif /* HAVE_RESOURCE */
 }
 

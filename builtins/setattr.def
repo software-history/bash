@@ -108,6 +108,10 @@ set_or_show_attributes (list, attribute)
       if (attribute & att_exported)
 	array_needs_making = 1;
 
+      /* Cannot undo readonly status. */
+      if (undo && (attribute & att_readonly))
+	attribute &= ~att_readonly;
+
       while (list)
 	{
 	  register char *name = list->word->word;

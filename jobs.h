@@ -282,9 +282,9 @@ typedef struct job {
 #endif /* !_POSIX_VERSION */
 
 /* System calls. */
-#if !defined (Solaris) && !defined (USGr4_2) && !defined (__BSD_4_4__)
+#if !defined (SunOS5) && !defined (USGr4_2) && !defined (__BSD_4_4__)
 extern pid_t fork (), getpid (), getpgrp ();
-#endif /* !Solaris && !USGr4_2 */
+#endif /* !SunOS5 && !USGr4_2 && !__BSD_4_4__ */
 
 /* Stuff from the jobs.c file. */
 extern pid_t  original_pgrp, shell_pgrp, pipeline_pgrp;
@@ -296,6 +296,7 @@ extern int job_slots;
 
 extern void making_children __P((void));
 extern void stop_making_children __P((void));
+extern void cleanup_the_pipeline __P((void));
 extern void start_pipeline __P((void));
 extern int stop_pipeline __P((int, COMMAND *));
 extern void delete_job __P((int));

@@ -820,16 +820,22 @@ yy_readline_get ()
 	give_terminal_to (shell_pgrp);
 #endif /* JOB_CONTROL */
 
-      old_sigint = (SigHandler *)set_signal_handler (SIGINT, sigint_sighandler);
-      interrupt_immediately++;
+      if (signal_is_ignored (SIGINT) == 0)
+	{
+	  old_sigint = (SigHandler *)set_signal_handler (SIGINT, sigint_sighandler);
+	  interrupt_immediately++;
+	}
 
       if (!current_readline_prompt)
 	current_readline_line = readline ("");
       else
 	current_readline_line = readline (current_readline_prompt);
 
-      interrupt_immediately--;
-      set_signal_handler (SIGINT, old_sigint);
+      if (signal_is_ignored (SIGINT) == 0)
+	{
+	  interrupt_immediately--;
+	  set_signal_handler (SIGINT, old_sigint);
+	}
 
       /* Reset the prompt to whatever is in the decoded value of
 	 prompt_string_pointer. */
@@ -872,9 +878,12 @@ with_input_from_stdin ()
 {
   INPUT_STREAM location;
 
-  location.string = current_readline_line;
-  init_yy_io (yy_readline_get, yy_readline_unget,
-	      st_string, "readline stdin", location);
+  if (bash_input.type != st_stdin && stream_on_stack (st_stdin) == 0)
+    {
+      location.string = current_readline_line;
+      init_yy_io (yy_readline_get, yy_readline_unget,
+		  st_stdin, "readline stdin", location);
+    }
 }
 
 #else  /* !READLINE */
@@ -1050,6 +1059,20 @@ pop_stream ()
       free (saver);
     }
 }
+
+/* Return 1 if a stream of type TYPE is saved on the stack. */
+int
+stream_on_stack (type)
+     int type;
+{
+  register STREAM_SAVER *s;
+ 
+  for (s = stream_list; s; s = s->next)
+    if (s->bash_input.type == type)
+      return 1;
+  return 0;
+}
+
 
 /*
  * This is used to inhibit alias expansion and reserved word recognition
@@ -1263,9 +1286,9 @@ read_a_line (remove_quoted_newline)
       /* `+2' in case the final character in the buffer is a newline. */
       if (indx + 2 > buffer_size)
 	if (!buffer_size)
-	  line_buffer = xmalloc (buffer_size = 400);
+	  line_buffer = xmalloc (buffer_size = 128);
 	else
-	  line_buffer = xrealloc (line_buffer, buffer_size += 400);
+	  line_buffer = xrealloc (line_buffer, buffer_size += 128);
 
       /* IF REMOVE_QUOTED_NEWLINES is non-zero, we are reading a
 	 here document with an unquoted delimiter.  In this case,
@@ -1396,9 +1419,9 @@ shell_getc (remove_quoted_newline)
 #endif /* !JOB_CONTROL */
 
 #if defined (READLINE)
-      if (interactive && no_line_editing)
+      if (interactive && bash_input.type != st_string && no_line_editing)
 #else
-      if (interactive)
+      if (interactive && bash_input.type != st_string)
 #endif
 	print_prompt ();
 
@@ -1525,7 +1548,7 @@ shell_getc (remove_quoted_newline)
 	return (EOF);
     }
 
-  return (c);
+  return ((unsigned char)c);
 }
 
 /* Put C back into the input for the shell. */
@@ -2611,12 +2634,25 @@ decode_prompt_string (string)
 		octal_string[3] = '\0';
 
 		n = read_octal (octal_string);
+		temp = xmalloc (3);
 
-		temp = savestring ("\\");
-		if (n != -1)
+		if (n == CTLESC || n == CTLNUL)
+		  {
+		    string += 3;
+		    temp[0] = CTLESC;
+		    temp[1] = n;
+		    temp[2] = '\0';
+		  }
+		else if (n == -1)
+		  {
+		    temp[0] = '\\';
+		    temp[1] = '\0';
+		  }
+		else
 		  {
 		    string += 3;
 		    temp[0] = n;
+		    temp[1] = '\0';
 		  }
 
 		c = 0;
@@ -2763,7 +2799,7 @@ decode_prompt_string (string)
 
   /* Perform variable and parameter expansion and command substitution on
      the prompt string. */
-  list = expand_string (result, 1);
+  list = expand_string_unsplit (result, 1);
   free (result);
   result = string_list (list);
   dispose_words (list);

@@ -1,17 +1,7 @@
-*** documentation/bash.1	Fri Jul  1 11:21:24 1994
---- documentation/bash.1	Tue Jul 26 14:47:59 1994
+*** documentation/bash.1	Tue Jul 26 14:47:59 1994
+--- documentation/bash.1	Tue Dec  6 12:16:54 1994
 ***************
 *** 7,15 ****
-  .\"	chet@ins.CWRU.Edu
-  .\"
-! .\"	Last Change: Mon Jun 13 20:05:33 EDT 1994
-  .\"
-  .\" bash_builtins, strip all but Built-Ins section
-  .if \n(zZ=1 .ig zZ
-! .TH BASH 1 "1994 June 13" GNU
-  .\"
-  .\" There's some problem with having a `@'
---- 7,15 ----
   .\"	chet@ins.CWRU.Edu
   .\"
 ! .\"	Last Change: Wed Jul 20 16:13:25 EDT 1994
@@ -19,5 +9,15 @@
   .\" bash_builtins, strip all but Built-Ins section
   .if \n(zZ=1 .ig zZ
 ! .TH BASH 1 "1994 July 26" GNU
+  .\"
+  .\" There's some problem with having a `@'
+--- 7,15 ----
+  .\"	chet@ins.CWRU.Edu
+  .\"
+! .\"	Last Change: Tue Dec  6 12:15:11 EST 1994
+  .\"
+  .\" bash_builtins, strip all but Built-Ins section
+  .if \n(zZ=1 .ig zZ
+! .TH BASH 1 "1994 Dec 6" GNU
   .\"
   .\" There's some problem with having a `@'

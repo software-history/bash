@@ -211,6 +211,53 @@ string_to_long (s)
   return (neg ? -ret : ret);
 }
 
+#if defined (RLIMTYPE)
+RLIMTYPE
+string_to_rlimtype (s)
+     char *s;
+{
+  RLIMTYPE ret = 0;
+  int neg = 0;
+
+  while (s && *s && whitespace (*s))
+    s++;
+  if (*s == '-' || *s == '+')
+    {
+      neg = *s == '-';
+      s++;
+    }
+  for ( ; s && *s && digit (*s); s++)
+    ret = (ret * 10) + digit_value (*s);
+  return (neg ? -ret : ret);
+}
+
+void
+print_rlimtype (n, addnl)
+     RLIMTYPE n;
+     int addnl;
+{
+  char s[sizeof (RLIMTYPE) * 3 + 1];
+  int len = sizeof (RLIMTYPE) * 3 + 1;
+
+  if (n == 0)
+    {
+      printf ("0%s", addnl ? "\n" : "");
+      return;
+    }
+
+  if (n < 0)
+    {
+      putchar ('-');
+      n = -n;
+    }
+
+  s[--len] = '\0';
+  for ( ; n != 0; n /= 10)
+    s[--len] = n % 10 + '0';
+  printf ("%s%s", s + len, addnl ? "\n" : "");
+}
+#endif /* RLIMTYPE */
+
 /* Return 1 if this token is a legal shell `identifier'; that is, it consists
    solely of letters, digits, and underscores, and does not begin with a
    digit. */

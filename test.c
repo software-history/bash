@@ -469,8 +469,10 @@ term ()
     {
       advance (1);
       value = expr ();
-      if (argv[pos][0] != ')' || argv[pos][1])
-	test_syntax_error ("')' expected, found %s\n", argv[pos]);
+      if (argv[pos] == 0)
+        test_syntax_error ("`)' expected\n");
+      else if (argv[pos][0] != ')' || argv[pos][1])
+	test_syntax_error ("`)' expected, found %s\n", argv[pos]);
       advance (0);
       return (TRUE == (value));
     }

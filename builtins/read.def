@@ -36,6 +36,8 @@ $END
 #include "../shell.h"
 #include "common.h"
 
+#define issep(c)	(strchr (ifs_chars, (c)) != (char *)0)
+
 static int stream_close ();
 
 extern int interrupt_immediately;
@@ -55,8 +57,9 @@ read_builtin (list)
 {
   register char *varname;
   int size, c, i, fildes, raw_mode, pass_next, saw_escape, retval;
-  char *input_string, *orig_input_string, *ifs_chars;
+  char *input_string, *orig_input_string, *ifs_chars, *t;
   FILE *input_stream;
+  SHELL_VAR *var;
 
   i = 0;		/* Index into the string that we are reading. */
   raw_mode = 0;		/* Not reading raw input be default. */
@@ -98,7 +101,9 @@ read_builtin (list)
       return (EXECUTION_FAILURE);
     }
 
-  ifs_chars = get_string_value ("IFS");
+  var = find_variable ("IFS");
+  ifs_chars = var ? value_cell (var) : " \t\n";
+  
   input_string = xmalloc (size = 128);
 
   setbuf (input_stream, (char *)NULL);
@@ -157,16 +162,13 @@ read_builtin (list)
   if (c == EOF)
     {
       retval = EXECUTION_FAILURE;
-      input_string[0] = '\0';
+      /* input_string[0] = '\0'; */
     }
   else
     retval = EXECUTION_SUCCESS;
 
   if (!list)
     {
-      SHELL_VAR *var;
-      char *t;
-
       if (saw_escape)
 	{
 	  t = dequote_string (input_string);
@@ -180,20 +182,28 @@ read_builtin (list)
     }
   else
     {
-      SHELL_VAR *var;
-      char *t;
       /* This code implements the Posix.2 spec for splitting the words
 	 read and assigning them to variables.  If $IFS is unset, we
 	 use the default value of " \t\n". */
-      if (!ifs_chars)
-	ifs_chars = "";
-
       orig_input_string = input_string;
-      while (list->next)
+
+      /* Remove IFS white space at the beginning of the input string.  If
+	 $IFS is null, no field splitting is performed. */
+      for (t = input_string; *ifs_chars && spctabnl (*t) && issep (*t); t++)
+	;
+      input_string = t;
+
+      for (; list->next; list = list->next)
 	{
 	  char *e, *t1;
 
 	  varname = list->word->word;
+	  if (legal_identifier (varname) == 0)
+	    {
+	      builtin_error ("%s: not a legal variable name", varname);
+	      free (orig_input_string);
+	      return (EXECUTION_FAILURE);
+	    }
 
 	  /* If there are more variables than words read from the input,
 	     the remaining variables are set to the empty string. */
@@ -225,10 +235,14 @@ read_builtin (list)
 
 	  if (t)
 	    free (t);
-
-	  list = list->next;
 	}
 
+      if (legal_identifier (list->word->word) == 0)
+	{
+	  builtin_error ("%s: not a legal variable name", list->word->word);
+	  free (orig_input_string);
+	  return (EXECUTION_FAILURE);
+	}
       if (saw_escape)
 	{
 	  t = dequote_string (input_string);

@@ -28,6 +28,21 @@ assumed.  For each element in WORDS, NAME is set to that element, and
 the COMMANDS are executed.
 $END
 
+$BUILTIN select
+$SHORT_DOC select NAME [in WORDS ... ;] do COMMANDS; done
+The WORDS are expanded, generating a list of words.  The
+set of expanded words is printed on the standard error, each
+preceded by a number.  If `in WORDS' is not present, `in "$@"'
+is assumed.  The PS3 prompt is then displayed and a line read
+from the standard input.  If the line consists of the number
+corresponding to one of the displayed words, then NAME is set
+to that word.  If the line is empty, WORDS and the prompt are
+redisplayed.  If EOF is read, the command completes.  Any other
+value read causes NAME to be set to null.  The line read is saved
+in the variable REPLY.  COMMANDS are executed after each selection
+until a break or return command is executed.
+$END
+
 $BUILTIN case
 $SHORT_DOC case WORD in [PATTERN [| PATTERN]...) COMMANDS ;;]... esac
 Selectively execute COMMANDS based upon WORD matching PATTERN.  The
@@ -79,9 +94,9 @@ WORD, then the job whose name begins with WORD is used.  Following the
 job specification with a `&' places the job in the background.
 $END
 
-$BUILTIN Variables
+$BUILTIN variables
 $DOCNAME variable_help
-$SHORT_DOC Some variable names and meanings
+$SHORT_DOC variables - Some variable names and meanings
 BASH_VERSION    The version numbers of this Bash.
 CDPATH          A colon separated list of directories to search
 		when the argument to `cd' is not found in the current
@@ -136,7 +151,4 @@ HISTCONTROL	Set to a value of `ignorespace', it means don't enter
 		or set to any other value than those above means to save
 		all lines on the history list.
 #endif /* HISTORY */
-#if defined (JOB_CONTROL)
-notify          Notify of job termination immediately.
-#endif
 $END

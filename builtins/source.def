@@ -30,7 +30,7 @@ $END
 $BUILTIN .
 $DOCNAME dot
 $FUNCTION source_builtin
-$SHORT_DOC . [filename]
+$SHORT_DOC . filename
 Read and execute commands from FILENAME and return.  The pathnames
 in $PATH are used to find the directory containing FILENAME.
 $END
@@ -60,7 +60,7 @@ extern int errno;
 extern int return_catch_flag, return_catch_value;
 extern jmp_buf return_catch;
 extern int posixly_correct;
-extern int interactive, interactive_shell;
+extern int interactive, interactive_shell, last_command_exit_value;
 
 /* How many `levels' of sourced files we have. */
 int sourcelevel = 0;
@@ -124,7 +124,10 @@ source_builtin (list)
 
 	  /* POSIX shells exit if non-interactive and file error. */
 	  if (posixly_correct && !interactive_shell)
-	    longjmp (top_level, EXITPROG);
+	    {
+	      last_command_exit_value = 1;
+	      longjmp (top_level, EXITPROG);
+	    }
 
 	  return (EXECUTION_FAILURE);
 	}
@@ -173,6 +176,11 @@ source_builtin (list)
 	 to return_builtin (), since that is how we got here. */
       if (return_val)
 	result = return_catch_value;
+    }
+  else
+    {
+      builtin_error ("filename argument required");
+      result = EXECUTION_FAILURE;
     }
   return (result);
 }

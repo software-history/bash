@@ -44,9 +44,10 @@ int
 shift_builtin (list)
      WORD_LIST *list;
 {
-  int times = get_numeric_arg (list);
-  int number, r;
+  int times, number;
   WORD_LIST *args;
+
+  times = get_numeric_arg (list);
 
   if (!times)
     return (EXECUTION_SUCCESS);
@@ -61,12 +62,10 @@ shift_builtin (list)
   number = list_length (args);
   dispose_words (args);
 
-  r = EXECUTION_SUCCESS;
-
   if (times > number)
     {
-      times = number;
-      r = EXECUTION_FAILURE;
+      builtin_error ("shift count must be <= $#");
+      return (EXECUTION_FAILURE);
     }
 
   while (times-- > 0)
@@ -91,5 +90,6 @@ shift_builtin (list)
       else
 	dollar_vars[9] = (char *)NULL;
     }
-  return (r);
+
+  return (EXECUTION_SUCCESS);
 }
