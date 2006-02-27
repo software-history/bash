@@ -2898,7 +2898,11 @@ add_nestret:
 	}
       else if MBTEST(qc == '`' && (ch == '"' || ch == '\'') && in_comment == 0)
 	{
-	  nestret = parse_matched_pair (0, ch, ch, &nestlen, rflags);
+	  /* Add P_ALLOWESC so backslash quotes the next character and
+	     shell_getc does the right thing with \<newline>.  We do this for
+	     a measure  of backwards compatibility -- it's not strictly the
+	     right POSIX thing. */
+	  nestret = parse_matched_pair (0, ch, ch, &nestlen, rflags|P_ALLOWESC);
 	  goto add_nestret;
 	}
       else if MBTEST(was_dollar && (ch == '(' || ch == '{' || ch == '['))	/* ) } ] */
