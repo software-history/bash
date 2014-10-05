@@ -119,3 +119,5 @@ extern struct user_info current_user;
 #else
 #  define USE_VAR(x)
 #endif
+extern char *parser_remaining_input __P((void));
+
