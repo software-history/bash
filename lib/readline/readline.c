@@ -284,7 +284,7 @@ readline (prompt)
       return ((char *)NULL);
     }
 
-  rl_visible_prompt_length = (rl_prompt && *rl_prompt) ?  rl_expand_prompt (rl_prompt) : 0;
+  rl_visible_prompt_length = rl_expand_prompt (rl_prompt);
 
   rl_initialize ();
   rl_prep_terminal (_rl_meta_flag);
@@ -639,9 +639,6 @@ _rl_dispatch (key, map)
 	ding ();
       return 0;
     }
-
-  if (defining_kbd_macro)
-    add_macro_char (key);
 
   if (defining_kbd_macro)
     add_macro_char (key);
@@ -1715,10 +1712,6 @@ rl_delete_text (from, to)
       from = to;
       to = t;
     }
-
-  if (to > rl_end)
-    to = rl_end;
-
 
   if (to > rl_end)
     to = rl_end;

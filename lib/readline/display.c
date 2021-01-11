@@ -690,25 +690,6 @@ update_line (old, new, current_line, omax, nmax, inv_botlin)
 	putc (' ', rl_outstream);
       _rl_last_c_pos = 1;		/* XXX */
       _rl_last_v_pos++;
-      if (old[0])
-        old[0] = new[0];
-    }
-      
-  /* If we're at the right edge of a terminal that supports xn, we're
-     ready to wrap around, so do so.  This fixes problems with knowing
-     the exact cursor position and cut-and-paste with certain terminal
-     emulators.  In this calculation, TEMP is the physical screen
-     position of the cursor. */
-  temp = _rl_last_c_pos - W_OFFSET(_rl_last_v_pos, visible_wrap_offset);
-  if (temp == screenwidth && term_xn && !_rl_horizontal_scroll_mode
-      && _rl_last_v_pos == current_line - 1)
-    {
-      if (new[0])
-	putc (new[0], rl_outstream);
-      else
-	putc (' ', rl_outstream);
-      _rl_last_c_pos = 1;		/* XXX */
-      _rl_last_v_pos++;
       if (old[0] && new[0])
         old[0] = new[0];
     }

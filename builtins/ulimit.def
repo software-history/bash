@@ -91,14 +91,6 @@ extern int errno;
 
 static void print_long ();
 
-#if !defined (RLIMTYPE)
-#  define RLIMTYPE long
-#  define string_to_rlimtype string_to_long
-#  define print_rlimtype(n, nl) printf ("%ld%s", n, nl ? "\n" : "")
-#endif
-
-static void print_long ();
-
 /* **************************************************************** */
 /*								    */
 /*			Ulimit builtin and Hacks.       	    */

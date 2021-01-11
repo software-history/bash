@@ -37,16 +37,7 @@ else
 	RMAIL=rmail
 fi
 
-if [ -f /usr/lib/sendmail ] ; then
-	RMAIL="/usr/lib/sendmail -t"
-elif [ -f /usr/sbin/sendmail ] ; then
-	RMAIL="/usr/sbin/sendmail -t"
-else
-	RMAIL=rmail
-fi
-
 cat > $TEMP <<EOF
-From: ${USER}
 From: ${USER}
 To: ${BUGADDR}
 Subject: [50 character or so descriptive subject here (for reference)]
